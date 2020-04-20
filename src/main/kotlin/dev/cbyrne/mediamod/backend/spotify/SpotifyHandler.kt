@@ -22,9 +22,16 @@ import io.ktor.http.contentType
 import java.io.File
 
 class SpotifyHandler {
-    val config = Config { addSpec(ConfigurationSpec) }.from.json.file(File("config.json"))
+    private val config = Config { addSpec(ConfigurationSpec) }.from.json.file(File("config.json"))
 
-    val http = HttpClient(Apache) {
+    private val http = HttpClient(Apache) {
+        install(Auth) {
+            basic {
+                username = config[ConfigurationSpec.spotifyClientID]
+                password = config[ConfigurationSpec.spotifyClientSecret]
+                sendWithoutRequest = true
+            }
+        }
         install(JsonFeature) {
             serializer = GsonSerializer {
                 serializeNulls()
@@ -34,23 +41,19 @@ class SpotifyHandler {
         }
     }
 
-    val auth: String = java.util.Base64.getEncoder()
-            .encodeToString("${config[ConfigurationSpec.spotifyClientID]}:${config[ConfigurationSpec.spotifyClientSecret]}".toByteArray())
-
     suspend fun getTokensFromCode(code: String): JsonObject {
-        try {
-            return http.post("https://accounts.spotify.com/api/token") {
-                this.body = FormDataContent(Parameters.build {
+        return try {
+            http.post("https://accounts.spotify.com/api/token") {
+                body = FormDataContent(Parameters.build {
                     append("grant_type", "authorization_code")
                     append("code", code)
                     append("redirect_uri", config[ConfigurationSpec.spotifyRedirectURI])
                 })
-                this.header("Authorization", "Basic $auth")
             }
         } catch (e: Exception) {
             val error = JsonObject()
             error.addProperty("error", e.localizedMessage)
-            return error
+            error
         }
     }
 }
