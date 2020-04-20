@@ -56,4 +56,19 @@ class SpotifyHandler {
             error
         }
     }
+
+    suspend fun getRefreshToken(refreshToken: String): JsonObject {
+        return try {
+            http.post("https://accounts.spotify.com/api/token") {
+                body = FormDataContent(Parameters.build {
+                    append("grant_type", "refresh_token")
+                    append("refresh_token", refreshToken)
+                })
+            }
+        } catch (e: Exception) {
+            val error = JsonObject()
+            error.addProperty("error", e.localizedMessage)
+            error
+        }
+    }
 }

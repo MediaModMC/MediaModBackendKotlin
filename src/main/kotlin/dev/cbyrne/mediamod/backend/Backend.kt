@@ -37,6 +37,14 @@ fun main(args: Array<String>) {
                     call.respond(HttpStatusCode.BadRequest, Response("error", "no code provided"))
                 }
             }
+
+            get("/api/spotify/refreshToken") {
+                if (call.parameters["token"] != null && call.parameters["token"]?.isNotBlank() != false) {
+                    call.respond(SpotifyHandler().getRefreshToken(call.parameters["token"]!!))
+                } else {
+                    call.respond(HttpStatusCode.BadRequest, Response("error", "no refresh token provided"))
+                }
+            }
         }
     }.start(wait = true)
 }
