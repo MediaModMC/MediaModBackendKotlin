@@ -2,6 +2,7 @@ package dev.cbyrne.mediamod.backend.spotify
 
 import com.google.gson.JsonObject
 import com.uchuhimo.konf.Config
+import dev.cbyrne.mediamod.backend.Response
 import dev.cbyrne.mediamod.backend.SpotifyResponse
 import dev.cbyrne.mediamod.backend.config.ConfigurationSpec
 import io.ktor.client.HttpClient
@@ -37,13 +38,19 @@ class SpotifyHandler {
             .encodeToString("${config[ConfigurationSpec.spotifyClientID]}:${config[ConfigurationSpec.spotifyClientSecret]}".toByteArray())
 
     suspend fun getTokensFromCode(code: String): JsonObject {
-        return http.post("https://accounts.spotify.com/api/token") {
-            this.body = FormDataContent(Parameters.build {
-                append("grant_type", "authorization_code")
-                append("code", code)
-                append("redirect_uri", config[ConfigurationSpec.spotifyRedirectURI])
-            })
-            this.header("Authorization", "Basic $auth")
+        try {
+            return http.post("https://accounts.spotify.com/api/token") {
+                this.body = FormDataContent(Parameters.build {
+                    append("grant_type", "authorization_code")
+                    append("code", code)
+                    append("redirect_uri", config[ConfigurationSpec.spotifyRedirectURI])
+                })
+                this.header("Authorization", "Basic $auth")
+            }
+        } catch (e: Exception) {
+            val error = JsonObject()
+            error.addProperty("error", e.localizedMessage)
+            return error
         }
     }
 }
