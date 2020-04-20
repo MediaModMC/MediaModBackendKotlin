@@ -24,6 +24,7 @@ fun main(args: Array<String>) {
                 setPrettyPrinting()
             }
         }
+
         routing {
             get("/") {
                 call.respond(Response("status", "OK"))
