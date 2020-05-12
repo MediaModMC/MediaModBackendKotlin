@@ -9,4 +9,6 @@ The MediaMod Backend written in Kotlin
 		"spotifyClientSecret": "clientsecret",
 		"spotifyRedirectURI": "callbackurl"
 	}
-}```
+}
+
+```
