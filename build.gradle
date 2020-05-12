@@ -24,20 +24,40 @@ repositories {
     jcenter()
 }
 
+configurations {
+    compile.extendsFrom(embed)
+    embed
+}
+
 dependencies {
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
-    compile "io.ktor:ktor-server-netty:$ktor_version"
-    compile "io.ktor:ktor-gson:$ktor_version"
-    compile "io.ktor:ktor-client-apache:1.3.2"
-    compile "io.ktor:ktor-client-gson:1.3.2"
-    compile "com.uchuhimo:konf:0.22.1"
-    compile "io.ktor:ktor-client-auth-jvm:$ktor_version"
-    compile "ch.qos.logback:logback-classic:1.2.1"
+    embed "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+    embed "io.ktor:ktor-server-netty:$ktor_version"
+    embed "io.ktor:ktor-gson:$ktor_version"
+    embed "io.ktor:ktor-client-apache:1.3.2"
+    embed "io.ktor:ktor-client-gson:1.3.2"
+    embed "com.uchuhimo:konf:0.22.1"
+    embed "io.ktor:ktor-client-auth-jvm:$ktor_version"
+    embed "ch.qos.logback:logback-classic:1.2.1"
 }
 
 compileKotlin {
     kotlinOptions.jvmTarget = "1.8"
 }
+
 compileTestKotlin {
     kotlinOptions.jvmTarget = "1.8"
+}
+
+jar {
+    dependsOn configurations.compile
+
+    configurations.embed.each {
+        from(it.isDirectory() ? it : zipTree(it)) {
+            exclude 'META-INF/**'
+        }
+    }
+
+    manifest {
+        attributes 'Main-Class': 'dev.cbyrne.mediamod.backend.MainKt'
+    }
 }

@@ -14,9 +14,8 @@ import io.ktor.server.netty.Netty
 import java.text.DateFormat
 
 data class Response(val key: String, val value: String)
-data class SpotifyResponse(val accessToken: String, val expiresIn: Int, val refreshToken: String)
 
-fun main(args: Array<String>) {
+fun main() {
     embeddedServer(Netty, 3000) {
         install(ContentNegotiation) {
             gson {
