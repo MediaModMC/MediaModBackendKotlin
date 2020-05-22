@@ -22,6 +22,7 @@ kotlin {
 
 repositories {
     jcenter()
+    maven { url "https://jitpack.io" }
 }
 
 configurations {
@@ -38,6 +39,7 @@ dependencies {
     embed "com.uchuhimo:konf:0.22.1"
     embed "io.ktor:ktor-client-auth-jvm:$ktor_version"
     embed "ch.qos.logback:logback-classic:1.2.1"
+    embed "org.litote.kmongo:kmongo:4.0.1"
 }
 
 compileKotlin {
