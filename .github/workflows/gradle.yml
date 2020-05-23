@@ -42,5 +42,5 @@ jobs:
         scp: ./build/distributions/MediaModBackendKotlin-1.0.0.zip ${{ secrets.USERNAME }}@${{ secrets.HOST }}:${{ SECRETS.DIR }}
         ssh_after: |
             cd ${{ secrets.DIR }} 
-            unzip MediaModBackendKotlin-1.0.0.zip 
+            unzip -o MediaModBackendKotlin-1.0.0.zip 
             rm -r MediaModBackendKotlin-1.0.0.zip
