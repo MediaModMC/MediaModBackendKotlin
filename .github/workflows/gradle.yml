@@ -44,3 +44,4 @@ jobs:
             cd ${{ secrets.DIR }} 
             unzip -o MediaModBackendKotlin-1.0.0.zip 
             rm -r MediaModBackendKotlin-1.0.0.zip
+            sudo /usr/bin/systemctl restart mediamodapi
