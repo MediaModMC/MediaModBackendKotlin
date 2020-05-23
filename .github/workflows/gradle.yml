@@ -24,7 +24,7 @@ jobs:
     - name: Assemble Distribution Files
       run: ./gradlew assembleDist
     - name: Copy distribution files to Server
-      uses: appleboy/scp-action@v.0.0.1
+      uses: appleboy/scp-action@v0.0.1
       with:
          host: ${{ secrets.HOST }}
          username: ${{ secrets.USERNAME }}
