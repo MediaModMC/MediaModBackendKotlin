@@ -4,6 +4,7 @@ import dev.cbyrne.mediamod.backend.mongo.Database
 import dev.cbyrne.mediamod.backend.mongo.Mod
 import dev.cbyrne.mediamod.backend.mongo.ModUser
 import dev.cbyrne.mediamod.backend.mongo.Version
+import dev.cbyrne.mediamod.backend.party.PartyManager
 import dev.cbyrne.mediamod.backend.spotify.SpotifyHandler
 import io.ktor.application.call
 import io.ktor.application.install
@@ -31,10 +32,15 @@ data class ModSpecificStats(val modID: String, val users: Int, val onlineUsers: 
 data class RegisterRequest(val uuid: String?, val currentMod: String?, val version: String?)
 data class AshconResponse(val uuid: String?, val username: String?)
 data class OfflineRequest(val uuid: String?)
+data class PartyStartRequest(val uuid: String?)
+data class PartyStartResponse(val code: String)
+data class PartyJoinRequest(val code: String?, val uuid: String?)
 
 object MediaModBackend {
     val logger = LoggerFactory.getLogger("Backend")
     private lateinit var database: Database
+    private lateinit var partyManager: PartyManager
+
     private val http = HttpClient(Apache) {
         install(JsonFeature) {
             serializer = GsonSerializer {
@@ -46,9 +52,11 @@ object MediaModBackend {
     }
 
     fun start() {
-        System.setProperty("org.litote.mongo.test.mapping.service", "org.litote.kmongo.jackson.JacksonClassMappingTypeService")
         logger.info("Starting...")
-        database = Database()
+        System.setProperty("org.litote.mongo.test.mapping.service", "org.litote.kmongo.jackson.JacksonClassMappingTypeService")
+
+        database = Database
+        partyManager = PartyManager()
 
         embeddedServer(Netty, 3000) {
             install(ContentNegotiation) {
@@ -70,6 +78,90 @@ object MediaModBackend {
                     }
 
                     call.respond(HttpStatusCode.OK, StatsResponse(database.getUserCount(), database.getOnlineUserCount(), modSpecificStats))
+                }
+
+                post("/startParty") {
+                    val request = call.receiveOrNull<PartyStartRequest>()
+
+                    when {
+                        request == null -> {
+                            call.respond(HttpStatusCode.BadRequest, "Invalid Request")
+                            return@post
+                        }
+
+                        request.uuid == null -> {
+                            call.respond(HttpStatusCode.BadRequest, "Invalid Request")
+                            return@post
+                        }
+
+                        request.uuid.length != 36 -> {
+                            call.respond(HttpStatusCode.BadRequest, "Invalid Request")
+                            return@post
+                        }
+
+                        else -> {
+                            val databaseUser = database.getUser(request.uuid)
+
+                            if (databaseUser == null) {
+                                call.respond(HttpStatusCode.BadRequest, "Invalid Request")
+                                return@post
+                            }
+
+                            call.respond(HttpStatusCode.OK, PartyStartResponse(partyManager.startParty(databaseUser)))
+                        }
+                    }
+                }
+
+                post("/joinParty") {
+                    val request = call.receiveOrNull<PartyJoinRequest>()
+
+                    when {
+                        request == null -> {
+                            call.respond(HttpStatusCode.BadRequest, "Invalid Request")
+                            return@post
+                        }
+
+                        request.uuid == null || request.code == null -> {
+                            call.respond(HttpStatusCode.BadRequest, "Invalid Request")
+                            return@post
+                        }
+
+                        request.uuid.length != 36 || request.code.length != 6 -> {
+                            call.respond(HttpStatusCode.BadRequest, "Invalid Request")
+                            return@post
+                        }
+
+                        else -> call.respond(partyManager.joinParty(request.code, request.uuid))
+                    }
+                }
+
+                post("/leaveParty") {
+                    val request = call.receiveOrNull<PartyStartRequest>()
+
+                    when {
+                        request == null -> {
+                            call.respond(HttpStatusCode.BadRequest, "Invalid Request")
+                            return@post
+                        }
+
+                        request.uuid == null -> {
+                            call.respond(HttpStatusCode.BadRequest, "Invalid Request")
+                            return@post
+                        }
+
+                        request.uuid.length != 36 -> {
+                            call.respond(HttpStatusCode.BadRequest, "Invalid Request")
+                            return@post
+                        }
+
+                        else -> {
+                            async {
+                                partyManager.stopParty(request.uuid)
+                            }
+
+                            call.respond(HttpStatusCode.OK)
+                        }
+                    }
                 }
 
                 post("/offline") {
@@ -94,10 +186,10 @@ object MediaModBackend {
                                 return@post
                             }
 
-
                             async {
                                 databaseUser.online = false
                                 database.updateUser(databaseUser)
+                                partyManager.stopParty(request.uuid)
                             }
 
                             call.respond(HttpStatusCode.OK, "Success")
