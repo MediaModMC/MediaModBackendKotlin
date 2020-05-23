@@ -144,6 +144,9 @@ object MediaModBackend {
                                 databaseUser.versions = databaseUser.versions.plus(currentVersion.version)
                                 database.updateUser(databaseUser)
                             }
+                        } else if (!databaseUser.online) {
+                            databaseUser.online = true
+                            database.updateUser(databaseUser)
                         }
                     } else {
                         // Verify UUID and username
