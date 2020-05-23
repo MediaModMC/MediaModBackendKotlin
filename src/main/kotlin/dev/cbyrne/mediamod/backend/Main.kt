@@ -3,6 +3,7 @@ package dev.cbyrne.mediamod.backend
 import dev.cbyrne.mediamod.backend.mongo.Database
 import dev.cbyrne.mediamod.backend.mongo.Mod
 import dev.cbyrne.mediamod.backend.mongo.ModUser
+import dev.cbyrne.mediamod.backend.mongo.Version
 import dev.cbyrne.mediamod.backend.spotify.SpotifyHandler
 import io.ktor.application.call
 import io.ktor.application.install
@@ -26,12 +27,12 @@ import org.slf4j.LoggerFactory
 import java.text.DateFormat
 
 data class StatsResponse(val userCount: Int, val onlineUsers: Int)
-data class RegisterRequest(val uuid: String?, val currentMod: String?)
+data class RegisterRequest(val uuid: String?, val currentMod: String?, val version: String?)
 data class AshconResponse(val uuid: String?, val username: String?)
 data class OfflineRequest(val uuid: String?)
 
 object MediaModBackend {
-    private val logger = LoggerFactory.getLogger("Backend")
+    public val logger = LoggerFactory.getLogger("Backend")
     private lateinit var database: Database
     private val http = HttpClient(Apache) {
         install(JsonFeature) {
@@ -105,13 +106,15 @@ object MediaModBackend {
                         return@post
                     }
 
-                    if (user.uuid == null || user.currentMod == null) {
+
+                    if (user.uuid == null || user.currentMod == null || user.version == null) {
                         call.respond(HttpStatusCode.BadRequest, "Invalid Request")
                         return@post
                     }
 
+                    val currentVersion = Version.values().find { it.version == user.version }
                     val currentMod = Mod.values().find { it.modid == user.currentMod }
-                    if (currentMod == null) {
+                    if (currentMod == null || currentVersion == null) {
                         call.respond(HttpStatusCode.BadRequest, "Invalid Mod")
                         return@post
                     }
@@ -127,6 +130,11 @@ object MediaModBackend {
                         if (!databaseUser.mods.contains(currentMod)) {
                             async {
                                 databaseUser.mods = databaseUser.mods.plus(currentMod)
+                                database.updateUser(databaseUser)
+                            }
+                        } else if (!databaseUser.versions.contains(user.version)) {
+                            async {
+                                databaseUser.versions = databaseUser.versions.plus(currentVersion.version)
                                 database.updateUser(databaseUser)
                             }
                         }
@@ -146,7 +154,7 @@ object MediaModBackend {
                         }
 
                         async {
-                            database.insertUser(ModUser(user.uuid, ashconResponse.username, arrayOf(currentMod)))
+                            database.insertUser(ModUser(user.uuid, ashconResponse.username, arrayOf(currentMod), arrayOf(currentVersion.version)))
                         }
                     }
 

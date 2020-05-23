@@ -5,7 +5,12 @@ enum class Mod(val modid: String) {
     UNKNOWN("unknown")
 }
 
-data class ModUser(val _id: String, val username: String, var mods: Array<Mod>, var online: Boolean = true) {
+enum class Version(val version: String) {
+    v1_8_9("1.8.9"),
+    v1_15_2("1.15.2")
+}
+
+data class ModUser(val _id: String, val username: String, var mods: Array<Mod>, var versions: Array<String>, var online: Boolean = true) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
