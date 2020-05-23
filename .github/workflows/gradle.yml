@@ -24,14 +24,13 @@ jobs:
     - name: Assemble Distribution Files
       run: ./gradlew assembleDist
     - name: Copy distribution files to Server
-      uses: appleboy/scp-action@v0.0.1
+      uses: horochx/deploy-via-scp@v1.0.1
       with:
-         host: ${{ secrets.HOST }}
-         username: ${{ secrets.USERNAME }}
-         port: 22
-         key: ${{ secrets.KEY }}
-         source: "./build/distribution/MediaModBackendKotlin-1.0.0.zip"
-         target: ${{ secrets.DIR }}
+        local: ./build/distribution/MediaModBackendKotlin-1.0.0.zip
+        remote: ${{ secrets.DIR }}
+        host: ${{ secrets.HOST }}
+        user: ${{ secrets.USER }}
+        key: ${{ secrets.KEY }}
     - name: Unpack Distribution Files
       uses: garygrossgarten/github-action-ssh@v0.5.0
       with:
