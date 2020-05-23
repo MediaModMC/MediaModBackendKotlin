@@ -60,7 +60,7 @@ object MediaModBackend {
 
             routing {
                 get("/") {
-                    call.respond(HttpStatusCode.OK, "OK")
+                    call.respond(HttpStatusCode.OK)
                 }
 
                 get("/stats") {
