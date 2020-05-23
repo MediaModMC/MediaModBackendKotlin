@@ -39,7 +39,7 @@ jobs:
         host: ${{ secrets.HOST }}
         user: ${{ secrets.USERNAME }}
         key: ${{ secrets.KEY }}
-        scp: ./build/distribution/MediaModBackendKotlin-1.0.0.zip ${{ secrets.USERNAME }}@${{ secrets.HOST }}:${{ SECRETS.DIR }}
+        scp: ./build/distributions/MediaModBackendKotlin-1.0.0.zip ${{ secrets.USERNAME }}@${{ secrets.HOST }}:${{ SECRETS.DIR }}
         ssh_after: |
             cd ${{ secrets.DIR }} 
             unzip MediaModBackendKotlin-1.0.0.zip 
