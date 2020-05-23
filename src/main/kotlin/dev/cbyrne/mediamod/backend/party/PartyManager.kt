@@ -39,7 +39,7 @@ class PartyManager {
     private fun generateCode(): String {
         val alphabet: List<Char> = ('a'..'z') + ('A'..'Z') + ('0'..'9')
         val code = List(6) { alphabet.random() }.joinToString("")
-        return if(Database.partiesCollection.find(MediaModParty::_id eq code).count() == 0) {
+        return if(Database.partiesCollection.findOneById(code) == null) {
             code
         } else {
             generateCode()
