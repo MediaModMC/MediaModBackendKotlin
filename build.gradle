@@ -1,5 +1,5 @@
 buildscript {
-    ext.kotlin_version = '1.3.70'
+    ext.kotlin_version = '1.3.72'
     ext.ktor_version = '1.3.2'
 
     repositories {
@@ -8,38 +8,30 @@ buildscript {
 }
 
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version '1.3.72'
+    id 'org.jetbrains.kotlin.jvm' version "$kotlin_version"
+    id 'application'
 }
+
+mainClassName = 'dev.cbyrne.mediamod.backend.MainKt'
 
 group 'dev.cbyrne'
 version '1.0.0'
-
-kotlin {
-    experimental {
-        coroutines "enable"
-    }
-}
 
 repositories {
     jcenter()
     maven { url "https://jitpack.io" }
 }
 
-configurations {
-    compile.extendsFrom(embed)
-    embed
-}
-
 dependencies {
-    embed "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
-    embed "io.ktor:ktor-server-netty:$ktor_version"
-    embed "io.ktor:ktor-gson:$ktor_version"
-    embed "io.ktor:ktor-client-apache:1.3.2"
-    embed "io.ktor:ktor-client-gson:1.3.2"
-    embed "com.uchuhimo:konf:0.22.1"
-    embed "io.ktor:ktor-client-auth-jvm:$ktor_version"
-    embed "ch.qos.logback:logback-classic:1.2.1"
-    embed "org.litote.kmongo:kmongo:4.0.1"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+    implementation "io.ktor:ktor-server-netty:$ktor_version"
+    implementation "io.ktor:ktor-gson:$ktor_version"
+    implementation "io.ktor:ktor-client-apache:1.3.2"
+    implementation "io.ktor:ktor-client-gson:1.3.2"
+    implementation "com.uchuhimo:konf:0.22.1"
+    implementation "io.ktor:ktor-client-auth-jvm:$ktor_version"
+    implementation "ch.qos.logback:logback-classic:1.2.1"
+    implementation "org.litote.kmongo:kmongo:4.0.1"
 }
 
 compileKotlin {
@@ -48,18 +40,4 @@ compileKotlin {
 
 compileTestKotlin {
     kotlinOptions.jvmTarget = "1.8"
-}
-
-jar {
-    dependsOn configurations.compile
-
-    configurations.embed.each {
-        from(it.isDirectory() ? it : zipTree(it)) {
-            exclude 'META-INF/**'
-        }
-    }
-
-    manifest {
-        attributes 'Main-Class': 'dev.cbyrne.mediamod.backend.MainKt'
-    }
 }

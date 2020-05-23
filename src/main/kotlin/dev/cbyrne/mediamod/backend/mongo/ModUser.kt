@@ -1,8 +1,7 @@
 package dev.cbyrne.mediamod.backend.mongo
 
 enum class Mod(val modid: String) {
-    MEDIAMOD("mediamod"),
-    UNKNOWN("unknown")
+    MEDIAMOD("mediamod")
 }
 
 enum class Version(val version: String) {

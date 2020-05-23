@@ -26,13 +26,14 @@ import kotlinx.coroutines.async
 import org.slf4j.LoggerFactory
 import java.text.DateFormat
 
-data class StatsResponse(val userCount: Int, val onlineUsers: Int)
+data class StatsResponse(val allUsers: Int, val allOnlineUsers: Int, val mods: MutableList<ModSpecificStats>)
+data class ModSpecificStats(val modID: String, val users: Int, val onlineUsers: Int)
 data class RegisterRequest(val uuid: String?, val currentMod: String?, val version: String?)
 data class AshconResponse(val uuid: String?, val username: String?)
 data class OfflineRequest(val uuid: String?)
 
 object MediaModBackend {
-    public val logger = LoggerFactory.getLogger("Backend")
+    val logger = LoggerFactory.getLogger("Backend")
     private lateinit var database: Database
     private val http = HttpClient(Apache) {
         install(JsonFeature) {
@@ -45,6 +46,7 @@ object MediaModBackend {
     }
 
     fun start() {
+        System.setProperty("org.litote.mongo.test.mapping.service", "org.litote.kmongo.jackson.JacksonClassMappingTypeService")
         logger.info("Starting...")
         database = Database()
 
@@ -58,11 +60,16 @@ object MediaModBackend {
 
             routing {
                 get("/") {
-                    call.respond(HttpStatusCode.OK)
+                    call.respond(HttpStatusCode.OK, "OK")
                 }
 
                 get("/stats") {
-                    call.respond(StatsResponse(database.getUserCount(), database.getOnlineUserCount()))
+                    val modSpecificStats = mutableListOf<ModSpecificStats>()
+                    Mod.values().forEach {
+                        modSpecificStats.add(ModSpecificStats(it.modid, database.getUserCountForMod(it), database.getOnlineUserCountForMod(it)))
+                    }
+
+                    call.respond(HttpStatusCode.OK, StatsResponse(database.getUserCount(), database.getOnlineUserCount(), modSpecificStats))
                 }
 
                 post("/offline") {
@@ -141,7 +148,7 @@ object MediaModBackend {
                     } else {
                         // Verify UUID and username
                         val ashconResponse: AshconResponse =
-                            http.get("https://api.ashcon.app/mojang/v2/user/" + user.uuid)
+                                http.get("https://api.ashcon.app/mojang/v2/user/" + user.uuid)
                         if (ashconResponse.username == null || ashconResponse.uuid == null) {
                             // User doesn't exist
                             call.respond(HttpStatusCode.BadRequest, "Provided user doesn't exist")
@@ -177,9 +184,7 @@ object MediaModBackend {
                     }
                 }
             }
-        }.start(wait = false)
-
-        logger.info("Ready!")
+        }.start(wait = true)
     }
 }
 

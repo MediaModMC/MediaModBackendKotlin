@@ -11,6 +11,8 @@ class Database {
     fun getUserCount(): Int = usersCollection.countDocuments().toInt()
     fun getOnlineUserCount(): Int = usersCollection.find(ModUser::online eq true).count()
     fun getUser(uuid: String): ModUser? = usersCollection.findOne(ModUser::_id eq uuid)
+    fun getUserCountForMod(mod: Mod): Int = usersCollection.find(ModUser::mods `in` mod.modid.toUpperCase()).count()
+    fun getOnlineUserCountForMod(mod: Mod): Int = usersCollection.find(ModUser::mods `in` mod.modid.toUpperCase()).filter(ModUser::online eq true).count()
 
     fun insertUser(user: ModUser) {
         usersCollection.insertOne(user)
