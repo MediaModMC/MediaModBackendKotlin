@@ -5,8 +5,8 @@ enum class Mod(val modid: String) {
 }
 
 enum class Version(val version: String) {
-    v1_8_9("1.8.9"),
-    v1_15_2("1.15.2")
+    V1_8_9("1.8.9"),
+    V1_15_2("1.15.2")
 }
 
 data class ModUser(val _id: String, val username: String, var mods: Array<Mod>, var versions: Array<String>, var online: Boolean = true) {
