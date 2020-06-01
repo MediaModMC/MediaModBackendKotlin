@@ -24,6 +24,9 @@ import io.ktor.routing.routing
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import kotlinx.coroutines.async
+import org.litote.kmongo.findOne
+import org.litote.kmongo.findOneById
+import org.litote.kmongo.updateOneById
 import org.slf4j.LoggerFactory
 import java.text.DateFormat
 
@@ -33,8 +36,9 @@ data class RegisterRequest(val uuid: String?, val currentMod: String?, val versi
 data class AshconResponse(val uuid: String?, val username: String?)
 data class OfflineRequest(val uuid: String?)
 data class PartyStartRequest(val uuid: String?)
-data class PartyStartResponse(val code: String)
+data class PartyStartResponse(val code: String, val secret: String)
 data class PartyJoinRequest(val code: String?, val uuid: String?)
+data class PartySongChangeRequest(val code: String?, val uuid: String?, val secret: String?, val trackId: String?)
 
 object MediaModBackend {
     val logger = LoggerFactory.getLogger("Backend")
@@ -107,7 +111,13 @@ object MediaModBackend {
                                 return@post
                             }
 
-                            call.respond(HttpStatusCode.OK, PartyStartResponse(partyManager.startParty(databaseUser)))
+                            val party = partyManager.startParty(databaseUser)
+                            if(party == null) {
+                                call.respond(HttpStatusCode.BadRequest, "Invalid Request (party may already exist with host)")
+                                return@post
+                            }
+
+                            call.respond(HttpStatusCode.OK, PartyStartResponse(party._id, party.requestSecret))
                         }
                     }
                 }
@@ -132,6 +142,51 @@ object MediaModBackend {
                         }
 
                         else -> call.respond(partyManager.joinParty(request.code, request.uuid))
+                    }
+                }
+
+                post("/songChange") {
+                    val request = call.receiveOrNull<PartySongChangeRequest>()
+
+                    when {
+                        request == null -> {
+                            call.respond(HttpStatusCode.BadRequest, "Invalid Request")
+                            return@post
+                        }
+
+                        request.uuid == null || request.code == null || request.trackId == null || request.secret == null -> {
+                            call.respond(HttpStatusCode.BadRequest, "Invalid Request")
+                            return@post
+                        }
+
+                        request.uuid.length != 36 || request.code.length != 6 || request.secret.length != 36 -> {
+                            call.respond(HttpStatusCode.BadRequest, "Invalid Request")
+                            return@post
+                        }
+
+                        else -> {
+                            val party = Database.partiesCollection.findOneById(request.code)
+                            if(party == null) {
+                                call.respond(HttpStatusCode.BadRequest, "Invalid Request")
+                                return@post
+                            }
+
+                            if(party.host._id == request.uuid && party.requestSecret == request.secret) {
+                                // User is host and secret is valid
+                                logger.info("User is host and secret is valid!")
+                                async {
+                                    party.track = request.trackId
+                                    Database.partiesCollection.updateOneById(party._id, party)
+                                }
+
+                                call.respond(HttpStatusCode.OK)
+                                return@post
+                            } else {
+                                logger.warn("User is either not host or secret is not valid!")
+                                call.respond(HttpStatusCode.Forbidden, "You are not allowed to do that!")
+                                return@post
+                            }
+                        }
                     }
                 }
 

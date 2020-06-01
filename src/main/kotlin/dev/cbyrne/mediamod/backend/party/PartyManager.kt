@@ -6,18 +6,19 @@ import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.litote.kmongo.*
+import java.util.*
 
 class PartyManager {
-    fun startParty(host: ModUser): String {
+    fun startParty(host: ModUser): MediaModParty? {
         val existingParty =  Database.partiesCollection.findOne(MediaModParty::participants `in` host._id)
         return if(existingParty == null) {
-            val party = MediaModParty(generateCode(), host, mutableListOf(host._id))
+            val party = MediaModParty(generateCode(), host, UUID.randomUUID().toString(), mutableListOf(host._id), "")
             GlobalScope.launch {
                 Database.partiesCollection.insertOne(party)
             }
-            party._id
+            party
         } else {
-            ""
+            null
         }
     }
 
