@@ -32,15 +32,15 @@ jobs:
       run: chmod +x gradlew
     - name: Assemble Distribution Files
       run: ./gradlew assembleDist
-    - name: Copy & Unpack Unpack Distribution Files
-      uses: alinz/ssh-scp-action@v0.1.1
-      with:
-        host: ${{ secrets.HOST }}
-        user: ${{ secrets.USERNAME }}
-        key: ${{ secrets.KEY }}
-        scp: ./build/distributions/MediaModBackendKotlin-1.0.0.zip ${{ secrets.USERNAME }}@${{ secrets.HOST }}:${{ SECRETS.DIR }}
-        ssh_after: |
-            cd ${{ secrets.DIR }} 
-            unzip -o MediaModBackendKotlin-1.0.0.zip 
-            rm -r MediaModBackendKotlin-1.0.0.zip
-            sudo /usr/bin/systemctl restart mediamodapi
+    #- name: Copy & Unpack Unpack Distribution Files
+      #uses: alinz/ssh-scp-action@v0.1.1
+      #with:
+        #host: ${{ secrets.HOST }}
+        #user: ${{ secrets.USERNAME }}
+        #key: ${{ secrets.KEY }}
+        #scp: ./build/distributions/MediaModBackendKotlin-1.0.0.zip ${{ secrets.USERNAME }}@${{ secrets.HOST }}:${{ SECRETS.DIR }}
+        #ssh_after: |
+            #cd ${{ secrets.DIR }} 
+            #unzip -o MediaModBackendKotlin-1.0.0.zip 
+            #rm -r MediaModBackendKotlin-1.0.0.zip
+            #sudo /usr/bin/systemctl restart mediamodapi
