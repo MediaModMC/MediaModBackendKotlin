@@ -1,5 +1,7 @@
 package dev.cbyrne.mediamod.backend
 
+import com.uchuhimo.konf.Config
+import dev.cbyrne.mediamod.backend.config.ConfigurationSpec
 import dev.cbyrne.mediamod.backend.mongo.Database
 import dev.cbyrne.mediamod.backend.mongo.Mod
 import dev.cbyrne.mediamod.backend.mongo.ModUser
@@ -24,10 +26,10 @@ import io.ktor.routing.routing
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import kotlinx.coroutines.async
-import org.litote.kmongo.findOne
 import org.litote.kmongo.findOneById
 import org.litote.kmongo.updateOneById
 import org.slf4j.LoggerFactory
+import java.io.File
 import java.text.DateFormat
 
 data class StatsResponse(val allUsers: Int, val allOnlineUsers: Int, val mods: MutableList<ModSpecificStats>)
@@ -39,11 +41,13 @@ data class PartyStartRequest(val uuid: String?)
 data class PartyStartResponse(val code: String, val secret: String)
 data class PartyJoinRequest(val code: String?, val uuid: String?)
 data class PartySongChangeRequest(val code: String?, val uuid: String?, val secret: String?, val trackId: String?)
+data class ClientIDResponse(val clientID: String)
 
 object MediaModBackend {
     val logger = LoggerFactory.getLogger("Backend")
     private lateinit var database: Database
     private lateinit var partyManager: PartyManager
+    private lateinit var config: Config
 
     private val http = HttpClient(Apache) {
         install(JsonFeature) {
@@ -62,6 +66,12 @@ object MediaModBackend {
         database = Database
         partyManager = PartyManager()
 
+        if(!File("config.json").exists()) {
+             logger.warn("config.json doesn't exist!")
+        } else {
+            config = Config { addSpec(ConfigurationSpec) }.from.json.file(File("config.json"))
+        }
+
         embeddedServer(Netty, 3000) {
             install(ContentNegotiation) {
                 gson {
@@ -72,7 +82,11 @@ object MediaModBackend {
 
             routing {
                 get("/") {
-                    call.respond(HttpStatusCode.OK)
+                    call.respond(HttpStatusCode.OK, "OK")
+                }
+
+                get("/clientID") {
+                    call.respond(HttpStatusCode.OK, ClientIDResponse(config[ConfigurationSpec.spotifyClientID]))
                 }
 
                 get("/stats") {
