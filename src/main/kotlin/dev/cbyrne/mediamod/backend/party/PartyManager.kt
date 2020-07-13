@@ -22,8 +22,13 @@ class PartyManager {
         }
     }
 
-    fun stopParty(host: String) {
-        Database.partiesCollection.findOneAndDelete(MediaModParty::participants `in` host)
+    fun stopParty(host: String, secret: String?) {
+        if(secret == null) return
+
+        val party = Database.partiesCollection.findOne(MediaModParty::requestSecret eq secret) ?: return
+        if(party.host._id == host) {
+            Database.partiesCollection.findOneAndDelete(MediaModParty::_id eq party._id)
+        }
     }
 
     fun joinParty(code: String, user: String): HttpStatusCode {

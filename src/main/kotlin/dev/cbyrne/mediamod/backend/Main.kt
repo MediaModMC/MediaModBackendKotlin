@@ -36,7 +36,7 @@ data class StatsResponse(val allUsers: Int, val allOnlineUsers: Int, val mods: M
 data class ModSpecificStats(val modID: String, val users: Int, val onlineUsers: Int)
 data class RegisterRequest(val uuid: String?, val currentMod: String?, val version: String?)
 data class AshconResponse(val uuid: String?, val username: String?)
-data class OfflineRequest(val uuid: String?)
+data class OfflineRequest(val uuid: String?, val secret: String?)
 data class PartyStartRequest(val uuid: String?)
 data class PartyStartResponse(val code: String, val secret: String)
 data class PartyJoinRequest(val code: String?, val uuid: String?)
@@ -67,7 +67,8 @@ object MediaModBackend {
         partyManager = PartyManager()
 
         if(!File("config.json").exists()) {
-             logger.warn("config.json doesn't exist!")
+            logger.error("config.json doesn't exist!")
+            System.exit(-1)
         } else {
             config = Config { addSpec(ConfigurationSpec) }.from.json.file(File("config.json"))
         }
@@ -82,11 +83,11 @@ object MediaModBackend {
 
             routing {
                 get("/") {
-                    call.respond(HttpStatusCode.OK, "OK")
+                    call.respond("OK")
                 }
 
                 get("/clientID") {
-                    call.respond(HttpStatusCode.OK, ClientIDResponse(config[ConfigurationSpec.spotifyClientID]))
+                    call.respond(ClientIDResponse(config[ConfigurationSpec.spotifyClientID]))
                 }
 
                 get("/stats") {
@@ -95,7 +96,7 @@ object MediaModBackend {
                         modSpecificStats.add(ModSpecificStats(it.modid, database.getUserCountForMod(it), database.getOnlineUserCountForMod(it)))
                     }
 
-                    call.respond(HttpStatusCode.OK, StatsResponse(database.getUserCount(), database.getOnlineUserCount(), modSpecificStats))
+                    call.respond(StatsResponse(database.getUserCount(), database.getOnlineUserCount(), modSpecificStats))
                 }
 
                 post("/startParty") {
@@ -112,7 +113,7 @@ object MediaModBackend {
                             return@post
                         }
 
-                        request.uuid.length != 36 -> {
+                        request.uuid.length != 32 -> {
                             call.respond(HttpStatusCode.BadRequest, "Invalid Request")
                             return@post
                         }
@@ -131,7 +132,7 @@ object MediaModBackend {
                                 return@post
                             }
 
-                            call.respond(HttpStatusCode.OK, PartyStartResponse(party._id, party.requestSecret))
+                            call.respond(PartyStartResponse(party._id, party.requestSecret))
                         }
                     }
                 }
@@ -150,7 +151,7 @@ object MediaModBackend {
                             return@post
                         }
 
-                        request.uuid.length != 36 || request.code.length != 6 -> {
+                        request.uuid.length != 32 || request.code.length != 6 -> {
                             call.respond(HttpStatusCode.BadRequest, "Invalid Request")
                             return@post
                         }
@@ -173,7 +174,7 @@ object MediaModBackend {
                             return@post
                         }
 
-                        request.uuid.length != 36 || request.code.length != 6 || request.secret.length != 36 -> {
+                            request.uuid.length != 32 || request.code.length != 6 || request.secret.length != 36 -> {
                             call.respond(HttpStatusCode.BadRequest, "Invalid Request")
                             return@post
                         }
@@ -218,14 +219,14 @@ object MediaModBackend {
                             return@post
                         }
 
-                        request.uuid.length != 36 -> {
+                        request.uuid.length != 32 -> {
                             call.respond(HttpStatusCode.BadRequest, "Invalid Request")
                             return@post
                         }
 
                         else -> {
                             async {
-                                partyManager.stopParty(request.uuid)
+                                // TODO: Leave party impl
                             }
 
                             call.respond(HttpStatusCode.OK)
@@ -237,20 +238,25 @@ object MediaModBackend {
                     val request = call.receiveOrNull<OfflineRequest>()
                     when {
                         request == null -> {
+                            logger.warn("/offline - request body is null")
                             call.respond(HttpStatusCode.BadRequest, "Invalid Request")
                             return@post
                         }
                         request.uuid == null -> {
+                            logger.warn("/offline - request uuid is null")
                             call.respond(HttpStatusCode.BadRequest, "Invalid Request")
                             return@post
                         }
-                        request.uuid.length != 36 -> {
+                        request.uuid.replace("-", "").length != 32 -> {
+                            logger.warn("/offline - request uuid length != 32 (recieved ${request.uuid.replace("-", "").length})")
                             call.respond(HttpStatusCode.BadRequest, "Invalid Request")
                             return@post
                         }
                         else -> {
-                            val databaseUser = database.getUser(request.uuid)
+                            val strippedUUID = request.uuid.replace("-", "")
+                            val databaseUser = database.getUser(strippedUUID)
                             if (databaseUser == null) {
+                                logger.warn("/offline - database user doesn't exist (could not find $strippedUUID)")
                                 call.respond(HttpStatusCode.BadRequest, "Invalid Request")
                                 return@post
                             }
@@ -258,10 +264,10 @@ object MediaModBackend {
                             async {
                                 databaseUser.online = false
                                 database.updateUser(databaseUser)
-                                partyManager.stopParty(request.uuid)
+                                partyManager.stopParty(strippedUUID, request.secret)
                             }
 
-                            call.respond(HttpStatusCode.OK, "Success")
+                            call.respond("Success")
                         }
                     }
                 }
@@ -270,12 +276,13 @@ object MediaModBackend {
                     val user = call.receiveOrNull<RegisterRequest>()
 
                     if (user == null) {
+                        logger.warn("/register - request body is null")
                         call.respond(HttpStatusCode.BadRequest, "Invalid Request")
                         return@post
                     }
 
-
                     if (user.uuid == null || user.currentMod == null || user.version == null) {
+                        logger.warn("/register - request has insufficient information (${user.uuid}, ${user.currentMod} or ${user.version} is null)")
                         call.respond(HttpStatusCode.BadRequest, "Invalid Request")
                         return@post
                     }
@@ -283,16 +290,19 @@ object MediaModBackend {
                     val currentVersion = Version.values().find { it.version == user.version }
                     val currentMod = Mod.values().find { it.modid == user.currentMod }
                     if (currentMod == null || currentVersion == null) {
+                        logger.warn("/register - request has bad mod id ($currentMod) or version ($currentVersion)")
                         call.respond(HttpStatusCode.BadRequest, "Invalid Mod")
                         return@post
                     }
 
-                    if (user.uuid.length != 36) {
+                    val strippedUUID = user.uuid.replace("-", "")
+                    if (strippedUUID.length != 32) {
+                        logger.warn("/register - stripped UUID is not correct length (${strippedUUID.length} instead of 32")
                         call.respond(HttpStatusCode.BadRequest, "Invalid UUID")
                         return@post
                     }
 
-                    val databaseUser = database.getUser(user.uuid)
+                    val databaseUser = database.getUser(strippedUUID)
                     if (databaseUser != null) {
                         // User already exists, no verification. Just update mods
                         if (!databaseUser.mods.contains(currentMod)) {
@@ -310,26 +320,34 @@ object MediaModBackend {
                             database.updateUser(databaseUser)
                         }
                     } else {
-                        // Verify UUID and username
-                        val ashconResponse: AshconResponse =
-                                http.get("https://api.ashcon.app/mojang/v2/user/" + user.uuid)
-                        if (ashconResponse.username == null || ashconResponse.uuid == null) {
-                            // User doesn't exist
-                            call.respond(HttpStatusCode.BadRequest, "Provided user doesn't exist")
-                            return@post
-                        }
+                        try {
+                            // Verify UUID and username
+                            val ashconResponse: AshconResponse =
+                                    http.get("https://api.ashcon.app/mojang/v2/user/$strippedUUID")
+                            if (ashconResponse.username == null || ashconResponse.uuid == null) {
+                                logger.warn("/register - User does not exist ($strippedUUID)")
+                                call.respond(HttpStatusCode.BadRequest, "Provided user doesn't exist")
+                                return@post
+                            }
 
-                        if (ashconResponse.uuid != user.uuid) {
-                            call.respond(HttpStatusCode.BadRequest, "Provided uuid doesn't match")
-                            return@post
-                        }
+                            if (ashconResponse.uuid.replace("-", "") != strippedUUID) {
+                                logger.warn("/register - Provided UUID ($strippedUUID) does not match Ashcon UUID (${ashconResponse.uuid.replace("-", "")})")
+                                call.respond(HttpStatusCode.BadRequest, "Provided uuid doesn't match")
+                                return@post
+                            }
 
-                        async {
-                            database.insertUser(ModUser(user.uuid, ashconResponse.username, arrayOf(currentMod), arrayOf(currentVersion.version)))
+                            async {
+                                logger.info("/register - Inserting new user into database")
+                                database.insertUser(ModUser(strippedUUID, ashconResponse.username, arrayOf(currentMod), arrayOf(currentVersion.version)))
+                            }
+                        } catch (e: Exception) {
+                            logger.warn("/register - User does not exist ($strippedUUID)")
+                            call.respond(HttpStatusCode.NotFound, "Provided user doesn't exist")
+                            return@post
                         }
                     }
 
-                    call.respond(HttpStatusCode.OK, "Success")
+                    call.respond("Success")
                 }
 
                 get("/api/spotify/getToken") {
