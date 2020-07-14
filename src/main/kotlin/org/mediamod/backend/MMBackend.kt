@@ -2,6 +2,10 @@ package org.mediamod.backend
 
 import io.ktor.application.Application
 import io.ktor.application.install
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.apache.Apache
+import io.ktor.client.features.json.GsonSerializer
+import io.ktor.client.features.json.JsonFeature
 import io.ktor.features.ContentNegotiation
 import io.ktor.gson.gson
 import io.ktor.routing.routing
@@ -15,6 +19,15 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.text.DateFormat
 
+val http = HttpClient(Apache) {
+    install(JsonFeature) {
+        serializer = GsonSerializer {
+            serializeNulls()
+            disableHtmlEscaping()
+            setPrettyPrinting()
+        }
+    }
+}
 val logger: Logger = LoggerFactory.getLogger("mediamod.Backend")
 lateinit var database: MMDatabase
 

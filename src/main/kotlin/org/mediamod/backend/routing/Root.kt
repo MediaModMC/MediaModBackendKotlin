@@ -7,6 +7,6 @@ import io.ktor.routing.get
 
 fun Routing.root() {
     get("/") {
-        call.respond(mapOf("status" to "OK"))
+        call.respond(mapOf("message" to "OK"))
     }
 }
