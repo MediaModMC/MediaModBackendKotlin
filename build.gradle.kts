@@ -6,8 +6,8 @@ plugins {
 group = "org.mediamod"
 version = "1.0-SNAPSHOT"
 
-application{
-    this.mainClassName = "org.mediamod.backend.MMBackendKt"
+application {
+    mainClassName = "org.mediamod.backend.MMBackendKt"
 }
 
 repositories {
@@ -25,7 +25,7 @@ dependencies {
     implementation("io.ktor:ktor-client-gson:1.3.2")
     testImplementation("io.ktor:ktor-server-test-host:1.3.2")
 
-    implementation("org.litote.kmongo:kmongo:4.0.3")
+    implementation("org.litote.kmongo:kmongo-coroutine:4.0.3")
 
     // Required for log messages to print
     implementation("ch.qos.logback:logback-classic:1.2.1")

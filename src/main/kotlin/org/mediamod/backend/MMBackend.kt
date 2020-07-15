@@ -19,6 +19,8 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.text.DateFormat
 
+fun main() = MMBackend.start()
+
 val http = HttpClient(Apache) {
     install(JsonFeature) {
         serializer = GsonSerializer {
@@ -29,6 +31,7 @@ val http = HttpClient(Apache) {
     }
 }
 val logger: Logger = LoggerFactory.getLogger("mediamod.Backend")
+
 lateinit var database: MMDatabase
 
 object MMBackend {
@@ -53,12 +56,8 @@ fun Application.mainModule() {
     }
 
     routing {
-        this.root()
-        this.api()
-        this.spotify()
+        root()
+        api()
+        spotify()
     }
-}
-
-fun main() {
-    MMBackend.start()
 }

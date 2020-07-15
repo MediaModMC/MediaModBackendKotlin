@@ -4,6 +4,7 @@ import io.ktor.http.*
 import io.ktor.server.testing.handleRequest
 import io.ktor.server.testing.setBody
 import io.ktor.server.testing.withTestApplication
+import kotlinx.coroutines.runBlocking
 import org.mediamod.backend.database
 import org.mediamod.backend.database.MMDatabase
 import org.mediamod.backend.mainModule
@@ -11,6 +12,7 @@ import java.util.*
 import kotlin.test.*
 
 data class CreateResponse(val secret: String?)
+
 class MMBackendTest {
     init {
         database = MMDatabase()
@@ -39,7 +41,7 @@ class MMBackendTest {
             assertNotNull(responseDecoded.secret, "Secret isn't null")
             assertEquals(responseDecoded.secret.length, 36, "Secret length equals 36")
 
-            val user = database.getUser(UUID.fromString("82074fcd-6eef-4caf-bc95-4dac50485fb7"))
+            val user = runBlocking { database.getUser(UUID.fromString("82074fcd-6eef-4caf-bc95-4dac50485fb7")) }
             assertNotNull(user, "User exists in database")
             assertEquals(responseDecoded.secret, user.requestSecret, "Secret matches database secret")
         }

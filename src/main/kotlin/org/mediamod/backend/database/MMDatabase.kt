@@ -1,14 +1,13 @@
 package org.mediamod.backend.database
 
 import com.mongodb.MongoClientSettings
-import com.mongodb.client.MongoClient
-import com.mongodb.client.MongoCollection
-import com.mongodb.client.MongoDatabase
 import org.bson.UuidRepresentation
-import org.litote.kmongo.KMongo
+import org.litote.kmongo.coroutine.CoroutineClient
+import org.litote.kmongo.coroutine.CoroutineCollection
+import org.litote.kmongo.coroutine.CoroutineDatabase
+import org.litote.kmongo.coroutine.coroutine
 import org.litote.kmongo.eq
-import org.litote.kmongo.findOne
-import org.litote.kmongo.getCollection
+import org.litote.kmongo.reactivestreams.KMongo
 import org.mediamod.backend.database.schema.Party
 import org.mediamod.backend.database.schema.User
 import org.slf4j.Logger
@@ -18,20 +17,20 @@ import java.util.*
 private val logger: Logger = LoggerFactory.getLogger("mediamod.Database")
 
 class MMDatabase {
-    private val client: MongoClient
-    private val database: MongoDatabase
+    private val client: CoroutineClient
+    private val database: CoroutineDatabase
 
-    private val usersCollection: MongoCollection<User>
-    private val partiesCollection: MongoCollection<Party>
+    private val usersCollection: CoroutineCollection<User>
+    private val partiesCollection: CoroutineCollection<Party>
 
     init {
         logger.info("Initialising...")
         val start = System.currentTimeMillis()
 
-        client = KMongo.createClient(MongoClientSettings.builder().uuidRepresentation(UuidRepresentation.STANDARD).build())
+        client = KMongo.createClient(MongoClientSettings.builder().uuidRepresentation(UuidRepresentation.STANDARD).build()).coroutine
         database = client.getDatabase("mediamod")
-        usersCollection = database.getCollection<User>("users")
-        partiesCollection = database.getCollection<Party>("parties")
+        usersCollection = database.getCollection("users")
+        partiesCollection = database.getCollection("parties")
 
         val stop = System.currentTimeMillis()
         logger.info("Initialised in " + (stop - start) + "ms")
@@ -46,7 +45,7 @@ class MMDatabase {
      *
      * @return The request secret that the mod will need to make future requests
      */
-    fun createUser(uuid: String, username: String, currentMod: String): String {
+    suspend fun createUser(uuid: String, username: String, currentMod: String): String {
         val user = User(uuid, username, UUID.randomUUID().toString(), arrayOf(currentMod), true)
         usersCollection.insertOne(user)
 
@@ -59,9 +58,8 @@ class MMDatabase {
      * @param uuid: The user's UUID
      * @return The request secret that the mod will need to make future requests
      */
-    fun loginUser(uuid: UUID): String {
-        val user = usersCollection.findOne(User::_id eq uuid.toString()) ?: return ""
-        return user.requestSecret
+    suspend fun loginUser(uuid: UUID): String {
+        return (usersCollection.findOne(User::_id eq uuid.toString()) ?: return "").requestSecret
     }
 
     /**
@@ -69,16 +67,13 @@ class MMDatabase {
      *
      * @param uuid: The user's UUID
      */
-    fun doesUserExist(uuid: UUID): Boolean {
-        return usersCollection.findOne(User::_id eq uuid.toString()) != null
-    }
+    suspend fun doesUserExist(uuid: UUID) = usersCollection.findOne(User::_id eq uuid.toString()) != null
 
     /**
      * Returns the user from the database with the corresponding UUID
      *
      * @param uuid: The user's uuid
      */
-    fun getUser(uuid: UUID): User? {
-        return usersCollection.findOne(User::_id eq uuid.toString())
-    }
+    suspend fun getUser(uuid: UUID) = usersCollection.findOne(User::_id eq uuid.toString())
+
 }
