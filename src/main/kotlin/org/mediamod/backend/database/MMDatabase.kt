@@ -27,12 +27,15 @@ class MMDatabase {
         logger.info("Initialising...")
         val start = System.currentTimeMillis()
 
+        // Initialize the client
         client = KMongo.createClient(
             MongoClientSettings
                 .builder()
                 .uuidRepresentation(UuidRepresentation.STANDARD)
                 .build()
         ).coroutine
+
+        // Set the database and collections
         database = client.getDatabase("mediamod")
         usersCollection = database.getCollection("users")
         partiesCollection = database.getCollection("parties")
@@ -71,6 +74,8 @@ class MMDatabase {
      * Checks if a user already exists in the database
      *
      * @param uuid: The user's UUID
+     *
+     * @return Whether the user is in the collection or not
      */
     suspend fun doesUserExist(uuid: UUID) = usersCollection.findOne(User::_id eq uuid.toString()) != null
 
@@ -78,6 +83,8 @@ class MMDatabase {
      * Returns the user from the database with the corresponding UUID
      *
      * @param uuid: The user's uuid
+     *
+     * @return THe player from the database, which will be nullable as they may not be in the database
      */
     suspend fun getUser(uuid: UUID) = usersCollection.findOne(User::_id eq uuid.toString())
 
