@@ -125,6 +125,7 @@ fun Routing.api() {
 
         if(user.requestSecret == request.secret) {
             // Secret matches, continue
+            logger.info("Marking ${user.username} as offline...")
             user.online = false
             user.requestSecret = ""
 

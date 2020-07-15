@@ -1,5 +1,7 @@
 package org.mediamod.backend
 
+import com.typesafe.config.ConfigFactory
+import io.github.config4k.extract
 import io.ktor.application.Application
 import io.ktor.application.install
 import io.ktor.client.HttpClient
@@ -17,9 +19,15 @@ import org.mediamod.backend.routing.api.spotify
 import org.mediamod.backend.routing.root
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.io.File
 import java.text.DateFormat
+import kotlin.system.exitProcess
+
+data class MMConfig(val spotifyClientID: String, val spotifyClientSecret: String, val spotifyRedirectURI: String)
 
 fun main() = MMBackend.start()
+
+lateinit var config: MMConfig
 
 val http = HttpClient(Apache) {
     install(JsonFeature) {
@@ -30,14 +38,23 @@ val http = HttpClient(Apache) {
         }
     }
 }
+
 val logger: Logger = LoggerFactory.getLogger("mediamod.Backend")
 
 lateinit var database: MMDatabase
-
 object MMBackend {
     fun start() {
         logger.info("Starting...")
         val start = System.currentTimeMillis()
+
+        val file = File("config.json")
+        if(!file.exists()) {
+            logger.error("Configuration file doesn't exist!")
+            exitProcess(-1)
+        }
+
+        val factory = ConfigFactory.parseFile(file)
+        config = factory.extract()
 
         database = MMDatabase()
         embeddedServer(Netty, 3000, watchPaths = listOf("MMBackendKt"), module = Application::mainModule).start()

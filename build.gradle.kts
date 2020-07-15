@@ -23,11 +23,14 @@ dependencies {
 
     implementation("io.ktor:ktor-gson:1.3.2")
     implementation("io.ktor:ktor-client-gson:1.3.2")
+    implementation("io.ktor:ktor-client-auth-jvm:1.3.2")
 
     testImplementation("io.ktor:ktor-server-test-host:1.3.2")
     testImplementation("org.junit.jupiter:junit-jupiter:5.6.2")
 
     implementation("org.litote.kmongo:kmongo-coroutine:4.0.3")
+
+    implementation("io.github.config4k:config4k:0.4.1")
 
     // Required for log messages to print
     implementation("ch.qos.logback:logback-classic:1.2.1")
