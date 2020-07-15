@@ -6,6 +6,7 @@ import org.litote.kmongo.coroutine.CoroutineClient
 import org.litote.kmongo.coroutine.CoroutineCollection
 import org.litote.kmongo.coroutine.CoroutineDatabase
 import org.litote.kmongo.coroutine.coroutine
+import org.litote.kmongo.eq
 import org.litote.kmongo.reactivestreams.KMongo
 import org.mediamod.backend.database.schema.Party
 import org.mediamod.backend.database.schema.User
@@ -100,4 +101,18 @@ class MMDatabase {
      * @return A boolean which indicates if the request was acknowledged
      */
     suspend fun updateUser(user: User) = usersCollection.updateOneById(user._id, user).wasAcknowledged()
+
+    /**
+     * Returns the amount of online users in the database
+     *
+     * @return The number of online users
+     */
+    suspend fun getOnlineUsersCount() = usersCollection.countDocuments(User::online eq true)
+
+    /**
+     * Returns the amount of users in the database
+     *
+     * @return The number users
+     */
+    suspend fun getAllUsersCount() = usersCollection.countDocuments()
 }
