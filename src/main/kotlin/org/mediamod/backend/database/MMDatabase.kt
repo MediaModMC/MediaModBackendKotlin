@@ -27,7 +27,9 @@ class MMDatabase {
         logger.info("Initialising...")
         val start = System.currentTimeMillis()
 
-        client = KMongo.createClient(MongoClientSettings.builder().uuidRepresentation(UuidRepresentation.STANDARD).build()).coroutine
+        client = KMongo.createClient(
+            MongoClientSettings.builder().uuidRepresentation(UuidRepresentation.STANDARD).build()
+        ).coroutine
         database = client.getDatabase("mediamod")
         usersCollection = database.getCollection("users")
         partiesCollection = database.getCollection("parties")

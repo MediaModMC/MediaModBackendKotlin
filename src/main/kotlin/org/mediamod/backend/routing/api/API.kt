@@ -30,26 +30,26 @@ data class RegisterRequest(val uuid: String?, val mod: String?)
 fun Routing.api() {
     post("/api/register") {
         val request = call.receiveOrNull<RegisterRequest>()
-        if(request == null) {
+        if (request == null) {
             logger.warn("Recieved null request for /api/register")
             call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Bad Request"))
             return@post
         }
 
-        if(request.uuid == null || request.uuid.length != 36) {
+        if (request.uuid == null || request.uuid.length != 36) {
             logger.warn("Recieved invalid UUID for /api/register! (uuid = ${request.uuid})")
             call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid UUID"))
             return@post
         }
 
-        if(request.mod == null) {
+        if (request.mod == null) {
             logger.warn("Recieved null mod for /api/register")
             call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid Mod"))
             return@post
         }
 
         val uuid = UUID.fromString(request.uuid)
-        if(database.doesUserExist(uuid)) {
+        if (database.doesUserExist(uuid)) {
             // User already exists in database, just update the existing user to be online
             call.respond(mapOf("secret" to database.loginUser(uuid)))
         } else {
@@ -63,19 +63,19 @@ fun Routing.api() {
                 return@post
             }
 
-            if(ashconResponse == null) {
+            if (ashconResponse == null) {
                 logger.error("Ashcon response was null for $uuid!")
                 call.respond(HttpStatusCode.InternalServerError, mapOf("message" to "Internal Server Error"))
                 return@post
             }
 
-            if(ashconResponse.username == null) {
+            if (ashconResponse.username == null) {
                 logger.error("Ashcon username was null for $uuid!")
                 call.respond(HttpStatusCode.InternalServerError, mapOf("message" to "Internal Server Error"))
                 return@post
             }
 
-            if(ashconResponse.uuid == null || ashconResponse.uuid != uuid.toString()) {
+            if (ashconResponse.uuid == null || ashconResponse.uuid != uuid.toString()) {
                 logger.error("Ashcon uuid was invalid for ${ashconResponse.username}! (Expected $uuid but got ${ashconResponse.uuid})")
                 call.respond(HttpStatusCode.InternalServerError, mapOf("message" to "Internal Server Error"))
                 return@post
