@@ -84,7 +84,7 @@ class MMDatabase {
      *
      * @param uuid: The user's uuid
      *
-     * @return THe player from the database, which will be nullable as they may not be in the database
+     * @return The player from the database, which will be nullable as they may not be in the database
      */
     suspend fun getUser(uuid: UUID) = usersCollection.findOne(User::_id eq uuid.toString())
 
