@@ -6,7 +6,6 @@ import org.litote.kmongo.coroutine.CoroutineClient
 import org.litote.kmongo.coroutine.CoroutineCollection
 import org.litote.kmongo.coroutine.CoroutineDatabase
 import org.litote.kmongo.coroutine.coroutine
-import org.litote.kmongo.eq
 import org.litote.kmongo.reactivestreams.KMongo
 import org.mediamod.backend.database.schema.Party
 import org.mediamod.backend.database.schema.User
@@ -67,7 +66,7 @@ class MMDatabase {
      * @return The request secret that the mod will need to make future requests
      */
     suspend fun loginUser(uuid: UUID): String {
-        return (usersCollection.findOne(User::_id eq uuid.toString()) ?: return "").requestSecret
+        return (usersCollection.findOneById(uuid.toString()) ?: return "").requestSecret
     }
 
     /**
@@ -77,7 +76,7 @@ class MMDatabase {
      *
      * @return Whether the user is in the collection or not
      */
-    suspend fun doesUserExist(uuid: UUID) = usersCollection.findOne(User::_id eq uuid.toString()) != null
+    suspend fun doesUserExist(uuid: UUID) = usersCollection.findOneById(uuid.toString()) != null
 
     /**
      * Returns the user from the database with the corresponding UUID
@@ -86,6 +85,5 @@ class MMDatabase {
      *
      * @return The player from the database, which will be nullable as they may not be in the database
      */
-    suspend fun getUser(uuid: UUID) = usersCollection.findOne(User::_id eq uuid.toString())
-
+    suspend fun getUser(uuid: UUID) = usersCollection.findOneById(uuid.toString())
 }
