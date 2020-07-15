@@ -31,19 +31,19 @@ fun Routing.api() {
     post("/api/register") {
         val request = call.receiveOrNull<RegisterRequest>()
         if (request == null) {
-            logger.warn("Recieved null request for /api/register")
+            logger.warn("Received null request for /api/register")
             call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Bad Request"))
             return@post
         }
 
         if (request.uuid == null || request.uuid.length != 36) {
-            logger.warn("Recieved invalid UUID for /api/register! (uuid = ${request.uuid})")
+            logger.warn("Received invalid UUID for /api/register! (uuid = ${request.uuid})")
             call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid UUID"))
             return@post
         }
 
         if (request.mod == null) {
-            logger.warn("Recieved null mod for /api/register")
+            logger.warn("Received null mod for /api/register")
             call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid Mod"))
             return@post
         }

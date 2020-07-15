@@ -43,7 +43,7 @@ class MMBackendTest {
 
             val user = runBlocking { database.getUser(UUID.fromString("82074fcd-6eef-4caf-bc95-4dac50485fb7")) } // Can't use suspend functions here.
             assertNotNull(user, "User exists in database")
-            assertEquals(responseDecoded.secret, user.requestSecret, "Secret matches database secret")
+            assertEquals(responseDecoded.secret, user.requestSecret, "Received secret is equal to database secret")
         }
         with(handleRequest(HttpMethod.Get, "/index.html")) {
             assertFalse(requestHandled)
