@@ -23,6 +23,7 @@ dependencies {
 
     implementation("io.ktor:ktor-gson:1.3.2")
     implementation("io.ktor:ktor-client-gson:1.3.2")
+    testImplementation("io.ktor:ktor-server-test-host:1.3.2")
 
     implementation("org.litote.kmongo:kmongo:4.0.3")
 

@@ -1,8 +1,10 @@
 package org.mediamod.backend.database
 
+import com.mongodb.MongoClientSettings
 import com.mongodb.client.MongoClient
 import com.mongodb.client.MongoCollection
 import com.mongodb.client.MongoDatabase
+import org.bson.UuidRepresentation
 import org.litote.kmongo.KMongo
 import org.litote.kmongo.eq
 import org.litote.kmongo.findOne
@@ -26,7 +28,7 @@ class MMDatabase {
         logger.info("Initialising...")
         val start = System.currentTimeMillis()
 
-        client = KMongo.createClient()
+        client = KMongo.createClient(MongoClientSettings.builder().uuidRepresentation(UuidRepresentation.STANDARD).build())
         database = client.getDatabase("mediamod")
         usersCollection = database.getCollection<User>("users")
         partiesCollection = database.getCollection<Party>("parties")
@@ -38,14 +40,14 @@ class MMDatabase {
     /**
      * Makes a user object and puts it into the users collection
      *
-     * @param uuid: The user's UUID stripped of any dashes
+     * @param uuid: The user's UUID
      * @param username: The user's Minecraft name
      * @param currentMod: The mod that sent the request
      *
      * @return The request secret that the mod will need to make future requests
      */
     fun createUser(uuid: String, username: String, currentMod: String): String {
-        val user = User(UUID.fromString(uuid), username, UUID.randomUUID().toString(), arrayOf(currentMod), true)
+        val user = User(uuid, username, UUID.randomUUID().toString(), arrayOf(currentMod), true)
         usersCollection.insertOne(user)
 
         return user.requestSecret
@@ -58,7 +60,7 @@ class MMDatabase {
      * @return The request secret that the mod will need to make future requests
      */
     fun loginUser(uuid: UUID): String {
-        val user = usersCollection.findOne(User::_id eq uuid) ?: return ""
+        val user = usersCollection.findOne(User::_id eq uuid.toString()) ?: return ""
         return user.requestSecret
     }
 
@@ -68,6 +70,15 @@ class MMDatabase {
      * @param uuid: The user's UUID
      */
     fun doesUserExist(uuid: UUID): Boolean {
-        return usersCollection.findOne(User::_id eq uuid) != null
+        return usersCollection.findOne(User::_id eq uuid.toString()) != null
+    }
+
+    /**
+     * Returns the user from the database with the corresponding UUID
+     *
+     * @param uuid: The user's uuid
+     */
+    fun getUser(uuid: UUID): User? {
+        return usersCollection.findOne(User::_id eq uuid.toString())
     }
 }

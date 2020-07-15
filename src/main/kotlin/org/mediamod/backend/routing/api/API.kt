@@ -16,28 +16,27 @@ import java.util.*
  * Information that is sent back from Ashcon when querying 'https://api.ashcon.app/mojang/v2/user/uuid'
  *
  * @param username: The user's username
- * @param uuid: The user's uuid including dashses
+ * @param uuid: The user's uuid
  */
 data class AshconResponse(val uuid: String?, val username: String?)
 
 /**
  * Body that is sent when a POST Request is sent to '/api/register'
  *
- * @param uuid: The user's UUID stripped of any dashes
+ * @param uuid: The user's UUID
  */
 data class RegisterRequest(val uuid: String?, val mod: String?)
 
 fun Routing.api() {
     post("/api/register") {
         val request = call.receiveOrNull<RegisterRequest>()
-
         if(request == null) {
             logger.warn("Recieved null request for /api/register")
             call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Bad Request"))
             return@post
         }
 
-        if(request.uuid == null || request.uuid.length != 32) {
+        if(request.uuid == null || request.uuid.length != 36) {
             logger.warn("Recieved invalid UUID for /api/register! (uuid = ${request.uuid})")
             call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid UUID"))
             return@post

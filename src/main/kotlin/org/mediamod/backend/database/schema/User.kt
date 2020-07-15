@@ -1,8 +1,6 @@
 package org.mediamod.backend.database.schema
 
-import java.util.*
-
-data class User(val _id: UUID, val username: String, val requestSecret: String, val mods: Array<String>, val online: Boolean) {
+data class User(val _id: String, val username: String, val requestSecret: String, val mods: Array<String>, val online: Boolean) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
