@@ -23,7 +23,9 @@ dependencies {
 
     implementation("io.ktor:ktor-gson:1.3.2")
     implementation("io.ktor:ktor-client-gson:1.3.2")
+
     testImplementation("io.ktor:ktor-server-test-host:1.3.2")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.6.2")
 
     implementation("org.litote.kmongo:kmongo-coroutine:4.0.3")
 
@@ -31,11 +33,14 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:1.2.1")
 }
 
-tasks {
-    compileKotlin {
-        kotlinOptions.jvmTarget = "1.8"
+tasks.test {
+    useJUnitPlatform()
+    testLogging {
+        events("passed", "skipped", "failed")
     }
-    compileTestKotlin {
-        kotlinOptions.jvmTarget = "1.8"
-    }
+}
+
+// config JVM target to 1.8 for kotlin compilation tasks
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    kotlinOptions.jvmTarget = "1.8"
 }

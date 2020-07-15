@@ -24,8 +24,17 @@ data class AshconResponse(val uuid: String?, val username: String?)
  * Body that is sent when a POST Request is sent to '/api/register'
  *
  * @param uuid: The user's UUID
+ * @param mod: The modid of the mod that sent the request
  */
 data class RegisterRequest(val uuid: String?, val mod: String?)
+
+/**
+ * Body that is sent when a POST Request is sent to '/api/register'
+ *
+ * @param uuid: The user's UUID
+ * @param secret: The user's authentication secret they received when POSTing '/api/register'
+ */
+data class OfflineRequest(val uuid: String?, val secret: String?)
 
 fun Routing.api() {
     post("/api/register") {
@@ -87,6 +96,47 @@ fun Routing.api() {
     }
 
     post("/api/offline") {
-        call.respond(HttpStatusCode.Companion.NotImplemented, mapOf("message" to "Not Implemented"))
+        val request = call.receiveOrNull<OfflineRequest>()
+
+        if (request == null) {
+            logger.warn("Received null request for /api/offline")
+            call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Bad Request"))
+            return@post
+        }
+
+        if (request.uuid == null || request.uuid.length != 36) {
+            logger.warn("Received invalid UUID for /api/offline (uuid = ${request.uuid})")
+            call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid UUID"))
+            return@post
+        }
+
+        if (request.secret == null || request.secret.length != 36) {
+            logger.warn("Received invalid secret for /api/offline (secret = ${request.secret})")
+            call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid Secret"))
+            return@post
+        }
+
+        val user = database.getUser(UUID.fromString(request.uuid))
+        if(user == null) {
+            logger.warn("User returned null for /api/offline (uuid = ${request.uuid})")
+            call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid UUID"))
+            return@post
+        }
+
+        if(user.requestSecret == request.secret) {
+            // Secret matches, continue
+            user.online = false
+            user.requestSecret = ""
+
+            val success = database.updateUser(user)
+
+            if(success) {
+                call.respond(HttpStatusCode.OK, mapOf("message" to "OK"))
+            } else {
+                call.respond(HttpStatusCode.InternalServerError, mapOf("message" to "Internal Server Error"))
+            }
+        } else {
+            call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid Secret"))
+        }
     }
 }

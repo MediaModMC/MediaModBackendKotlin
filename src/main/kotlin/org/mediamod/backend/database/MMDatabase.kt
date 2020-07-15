@@ -66,7 +66,13 @@ class MMDatabase {
      * @return The request secret that the mod will need to make future requests
      */
     suspend fun loginUser(uuid: UUID): String {
-        return (usersCollection.findOneById(uuid.toString()) ?: return "").requestSecret
+        val user = usersCollection.findOneById(uuid.toString()) ?: return ""
+
+        user.online = true
+        user.requestSecret = UUID.randomUUID().toString()
+
+        updateUser(user)
+        return user.requestSecret
     }
 
     /**
@@ -86,4 +92,12 @@ class MMDatabase {
      * @return The player from the database, which will be nullable as they may not be in the database
      */
     suspend fun getUser(uuid: UUID) = usersCollection.findOneById(uuid.toString())
+
+    /**
+     * Returns a boolean depending on if the user object in the database was updated
+     *
+     * @param user: The updated user object
+     * @return A boolean which indicates if the request was acknowledged
+     */
+    suspend fun updateUser(user: User) = usersCollection.updateOneById(user._id, user).wasAcknowledged()
 }
