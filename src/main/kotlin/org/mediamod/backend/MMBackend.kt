@@ -15,6 +15,7 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import org.mediamod.backend.database.MMDatabase
 import org.mediamod.backend.routing.api.api
+import org.mediamod.backend.routing.api.party
 import org.mediamod.backend.routing.api.spotify
 import org.mediamod.backend.routing.root
 import org.slf4j.Logger
@@ -76,5 +77,6 @@ fun Application.mainModule() {
         root()
         api()
         spotify()
+        party()
     }
 }

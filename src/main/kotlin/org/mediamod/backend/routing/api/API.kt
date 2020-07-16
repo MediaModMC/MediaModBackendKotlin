@@ -7,6 +7,7 @@ import io.ktor.request.receiveOrNull
 import io.ktor.response.respond
 import io.ktor.routing.Routing
 import io.ktor.routing.post
+import kotlinx.coroutines.async
 import org.mediamod.backend.database
 import org.mediamod.backend.http
 import org.mediamod.backend.logger
@@ -124,18 +125,12 @@ fun Routing.api() {
         }
 
         if(user.requestSecret == request.secret) {
-            // Secret matches, continue
-            logger.info("Marking ${user.username} as offline...")
-            user.online = false
-            user.requestSecret = ""
-
-            val success = database.updateUser(user)
-
-            if(success) {
-                call.respond(HttpStatusCode.OK, mapOf("message" to "OK"))
-            } else {
-                call.respond(HttpStatusCode.InternalServerError, mapOf("message" to "Internal Server Error"))
+            async {
+                logger.info("Marking ${user.username} as offline...")
+                database.offlineUser(user)
             }
+
+            call.respond(HttpStatusCode.OK, mapOf("message" to "OK"))
         } else {
             call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid Secret"))
         }

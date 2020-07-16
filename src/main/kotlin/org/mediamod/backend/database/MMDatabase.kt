@@ -1,14 +1,14 @@
 package org.mediamod.backend.database
 
 import com.mongodb.MongoClientSettings
+import com.sun.xml.internal.ws.wsdl.writer.document.Part
 import org.bson.UuidRepresentation
-import org.litote.kmongo.coroutine.CoroutineClient
-import org.litote.kmongo.coroutine.CoroutineCollection
-import org.litote.kmongo.coroutine.CoroutineDatabase
-import org.litote.kmongo.coroutine.coroutine
+import org.litote.kmongo.contains
+import org.litote.kmongo.coroutine.*
 import org.litote.kmongo.eq
 import org.litote.kmongo.reactivestreams.KMongo
 import org.mediamod.backend.database.schema.Party
+import org.mediamod.backend.database.schema.Track
 import org.mediamod.backend.database.schema.User
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -54,7 +54,7 @@ class MMDatabase {
      * @return The request secret that the mod will need to make future requests
      */
     suspend fun createUser(uuid: String, username: String, currentMod: String): String {
-        val user = User(uuid, username, UUID.randomUUID().toString(), arrayOf(currentMod), true)
+        val user = User(uuid, username, UUID.randomUUID().toString(), arrayListOf(currentMod), true)
         usersCollection.insertOne(user)
 
         return user.requestSecret
@@ -74,6 +74,28 @@ class MMDatabase {
 
         updateUser(user)
         return user.requestSecret
+    }
+
+    /**
+     * Marks a user as offline, called when the client is shutting down
+     * This expires the requestSecret so when they come online again a new one can be generated
+     * Also removes the user from any participating parties or stops the party if they are the host
+     *
+     * @param user: The user to mark as offline
+     */
+    suspend fun offlineUser(user: User) {
+        val party = partiesCollection.findOne(Party::participants contains user._id)
+        if(party != null) {
+            party.participants.remove(user._id)
+            partiesCollection.updateOneById(party._id, party)
+        } else {
+            partiesCollection.findOneAndDelete(Party::host eq user)
+        }
+
+        user.online = false
+        user.requestSecret = ""
+
+        updateUser(user)
     }
 
     /**
@@ -112,7 +134,56 @@ class MMDatabase {
     /**
      * Returns the amount of users in the database
      *
-     * @return The number users
+     * @return The number of users
      */
     suspend fun getAllUsersCount() = usersCollection.countDocuments()
+
+    /**
+     * Creates a party and returns the party secret and code if successful
+     *
+     * @param uuid: The host's UUID
+     */
+    suspend fun createParty(uuid: String, track: Track?): Map<String, String>? {
+        val hostUser = getUser(UUID.fromString(uuid)) ?: return null
+
+        val party = Party(generatePartyCode(), hostUser, UUID.randomUUID().toString(), arrayListOf(uuid), track)
+        partiesCollection.insertOne(party)
+
+        return mapOf("secret" to party.requestSecret, "code" to party._id)
+    }
+
+    /**
+     * Removes a user from a party
+     * Can also delete the party if the uuid provided is the host and the partySecret matches the one in the database
+     *
+     * @return: Successful
+     */
+    suspend fun leaveParty(uuid: String, partyCode: String, partySecret: String): Boolean {
+        val party = partiesCollection.findOneById(partyCode) ?: return false
+        val user = getUser(UUID.fromString(uuid)) ?: return false
+
+        if(party.host._id == user._id && party.requestSecret == partySecret) {
+            partiesCollection.deleteOneById(partyCode)
+        } else if(party.participants.contains(uuid)) {
+            party.participants.remove(uuid)
+            partiesCollection.updateOneById(partyCode, party)
+        }
+
+        return true
+    }
+
+    suspend fun getParty(code: String): Party? = partiesCollection.findOneById(code)
+
+    /**
+     * Returns a 6 digit alphanumeric code for a MediaMod Party
+     */
+    private suspend fun generatePartyCode(): String {
+        val alphabet: List<Char> = ('a'..'z') + ('A'..'Z') + ('0'..'9')
+        val code = List(6) { alphabet.random() }.joinToString("")
+        return if(partiesCollection.findOneById(code) == null) {
+            code
+        } else {
+            generatePartyCode()
+        }
+    }
 }
