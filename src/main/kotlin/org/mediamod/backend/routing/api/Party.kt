@@ -40,6 +40,25 @@ data class PartyStatusRequest(val secret: String?, val uuid: String?, val partyC
  */
 data class PartyLeaveRequest(val secret: String?, val uuid: String?, val partyCode: String?, val partySecret: String?)
 
+/**
+ * The body sent when the user requests to join a party
+ *
+ * @param secret: The user's secret they received when POSTing '/api/register'
+ * @param uuid: The user's UUID
+ * @param partyCode: The party invite code
+ */
+data class PartyJoinRequest(val secret: String?, val uuid: String?, val partyCode: String?)
+
+/**
+ * The body sent when the mod requests to update the track information on the server
+ *
+ * @param secret: The user's secret they received when POSTing '/api/register'
+ * @param uuid: The user's UUID
+ * @param partyCode: The party invite code
+ * @param partySecret: The party secret provided to the host when POSTing '/api/party/start'
+ */
+data class PartyUpdateRequest(val secret: String?, val uuid: String?, val partyCode: String?, val partySecret: String?, val currentTrack: String?)
+
 fun Routing.party() {
     /**
      * Starts a party with the provided UUID as the host
@@ -117,12 +136,6 @@ fun Routing.party() {
             return@post
         }
 
-        if (request.partySecret?.length != 36) {
-            logger.warn("Received invalid party secret for /api/party/leave (secret = ${request.secret})")
-            call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid Secret"))
-            return@post
-        }
-
         val user = database.getUser(UUID.fromString(request.uuid))
         if (user == null) {
             logger.warn("User returned null for /api/spotify/token (uuid = ${request.uuid})")
@@ -163,7 +176,7 @@ fun Routing.party() {
         }
 
         if (request.partyCode?.length != 6) {
-            logger.warn("Received invalid party code for /api/party/status (uuid = ${request.uuid})")
+            logger.warn("Received invalid party code for /api/party/status (code = ${request.partyCode})")
             call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid UUID"))
             return@post
         }
@@ -184,7 +197,7 @@ fun Routing.party() {
         if (user.requestSecret == request.secret) {
             val party = database.getParty(request.partyCode)
 
-            if(party == null) {
+            if (party == null) {
                 logger.warn("User tried to get status of a party that doesn't exist!")
                 call.respond(HttpStatusCode.BadRequest, mapOf("message" to "That party doesn't exist"))
                 return@post
@@ -199,7 +212,7 @@ fun Routing.party() {
     }
 
     post("/api/party/update") {
-        val request = call.receiveOrNull<PartyLeaveRequest>()
+        val request = call.receiveOrNull<PartyUpdateRequest>()
 
         if (request == null) {
             logger.warn("Received null request for /api/party/update")
@@ -214,7 +227,7 @@ fun Routing.party() {
         }
 
         if (request.partyCode?.length != 6) {
-            logger.warn("Received invalid party code for /api/party/update (uuid = ${request.uuid})")
+            logger.warn("Received invalid party code for /api/party/update (code = ${request.partyCode})")
             call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid UUID"))
             return@post
         }
@@ -239,13 +252,65 @@ fun Routing.party() {
         }
 
         if (user.requestSecret == request.secret) {
-            val success = database.leaveParty(user._id, request.partyCode, request.partySecret)
+            val party = database.getParty(request.partyCode)
 
-            if (success) {
-                call.respond(HttpStatusCode.OK, mapOf("message" to "Successfully left party!"))
+            if(party?.requestSecret == request.partySecret) {
+                party.currentTrack = Gson().fromJson(request.currentTrack, Track::class.java)
+                database.updateParty(party)
+            } else {
+                logger.warn("Received invalid party secret for /api/party/update (got ${request.secret}, expected ${user.requestSecret}})")
+                call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid Secret"))
+                return@post
+            }
+        } else {
+            logger.warn("Received invalid secret for /api/party/update (got ${request.secret}, expected ${user.requestSecret}})")
+            call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid Secret"))
+            return@post
+        }
+    }
+
+    post("/api/party/join") {
+        val request = call.receiveOrNull<PartyJoinRequest>()
+
+        if (request == null) {
+            logger.warn("Received null request for /api/party/join")
+            call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid Request"))
+            return@post
+        }
+
+        if (request.uuid?.length != 36) {
+            logger.warn("Received invalid UUID for /api/party/join (uuid = ${request.uuid})")
+            call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid UUID"))
+            return@post
+        }
+
+        if (request.partyCode?.length != 6) {
+            logger.warn("Received invalid party code for /api/party/join (uuid = ${request.uuid})")
+            call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid UUID"))
+            return@post
+        }
+
+        if (request.secret?.length != 36) {
+            logger.warn("Received invalid secret for /api/party/join (secret = ${request.secret})")
+            call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid Secret"))
+            return@post
+        }
+
+        val user = database.getUser(UUID.fromString(request.uuid))
+        if (user == null) {
+            logger.warn("User returned null for /api/party/join (uuid = ${request.uuid})")
+            call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid UUID"))
+            return@post
+        }
+
+        if (user.requestSecret == request.secret) {
+            val host = database.joinParty(user._id, request.partyCode)
+
+            if (host != null) {
+                call.respond(HttpStatusCode.OK, mapOf("success" to true, "host" to host))
             } else {
                 logger.warn("Failed to remove $user from party!")
-                call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid party or user"))
+                call.respond(HttpStatusCode.BadRequest, mapOf("success" to false, "host" to ""))
             }
         } else {
             logger.warn("Received invalid secret for /api/spotify/token (got ${request.secret}, expected ${user.requestSecret}})")

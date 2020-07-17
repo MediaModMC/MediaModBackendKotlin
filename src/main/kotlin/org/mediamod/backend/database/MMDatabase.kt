@@ -85,11 +85,14 @@ class MMDatabase {
      */
     suspend fun offlineUser(user: User) {
         val party = partiesCollection.findOne(Party::participants contains user._id)
+
         if(party != null) {
-            party.participants.remove(user._id)
-            partiesCollection.updateOneById(party._id, party)
-        } else {
-            partiesCollection.findOneAndDelete(Party::host eq user)
+            if(party.host._id == user._id) {
+                partiesCollection.findOneAndDelete(Party::host eq user)
+            } else {
+                party.participants.remove(user._id)
+                updateParty(party)
+            }
         }
 
         user.online = false
@@ -125,6 +128,14 @@ class MMDatabase {
     suspend fun updateUser(user: User) = usersCollection.updateOneById(user._id, user).wasAcknowledged()
 
     /**
+     * Returns a boolean depending on if the party object in the database was updated
+     *
+     * @param party: The updated party object
+     * @return A boolean which indicates if the request was acknowledged
+     */
+    suspend fun updateParty(party: Party) = partiesCollection.updateOneById(party._id, party).wasAcknowledged()
+
+    /**
      * Returns the amount of online users in the database
      *
      * @return The number of online users
@@ -158,7 +169,7 @@ class MMDatabase {
      *
      * @return: Successful
      */
-    suspend fun leaveParty(uuid: String, partyCode: String, partySecret: String): Boolean {
+    suspend fun leaveParty(uuid: String, partyCode: String, partySecret: String?): Boolean {
         val party = partiesCollection.findOneById(partyCode) ?: return false
         val user = getUser(UUID.fromString(uuid)) ?: return false
 
@@ -166,10 +177,24 @@ class MMDatabase {
             partiesCollection.deleteOneById(partyCode)
         } else if(party.participants.contains(uuid)) {
             party.participants.remove(uuid)
-            partiesCollection.updateOneById(partyCode, party)
+            updateParty(party)
         }
 
         return true
+    }
+
+    /**
+     * Adds a user into the party
+     *
+     * @return: Successful
+     */
+    suspend fun joinParty(uuid: String, partyCode: String): String? {
+        val party = partiesCollection.findOneById(partyCode) ?: return null
+
+        party.participants.add(uuid)
+        partiesCollection.updateOneById(partyCode, party)
+
+        return party.host.username
     }
 
     suspend fun getParty(code: String): Party? = partiesCollection.findOneById(code)
