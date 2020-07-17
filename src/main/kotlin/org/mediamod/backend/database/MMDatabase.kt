@@ -1,7 +1,6 @@
 package org.mediamod.backend.database
 
 import com.mongodb.MongoClientSettings
-import com.sun.xml.internal.ws.wsdl.writer.document.Part
 import org.bson.UuidRepresentation
 import org.litote.kmongo.contains
 import org.litote.kmongo.coroutine.*
@@ -54,7 +53,7 @@ class MMDatabase {
      * @return The request secret that the mod will need to make future requests
      */
     suspend fun createUser(uuid: String, username: String, currentMod: String): String {
-        val user = User(uuid, username, UUID.randomUUID().toString(), arrayListOf(currentMod), true)
+        val user = User(uuid, username, UUID.randomUUID().toString(), arrayListOf(currentMod), true, null)
         usersCollection.insertOne(user)
 
         return user.requestSecret
@@ -97,6 +96,7 @@ class MMDatabase {
 
         user.online = false
         user.requestSecret = ""
+        user.levelheadTrack = null
 
         updateUser(user)
     }

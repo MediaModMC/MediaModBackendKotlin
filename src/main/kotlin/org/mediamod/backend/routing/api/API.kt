@@ -27,7 +27,7 @@ data class AshconResponse(val uuid: String?, val username: String?)
  * @param uuid: The user's UUID
  * @param mod: The modid of the mod that sent the request
  */
-data class RegisterRequest(val uuid: String?, val mod: String?)
+data class RegisterRequest(val uuid: String?, val mod: String?, val serverID: String?)
 
 /**
  * Body that is sent when a POST Request is sent to '/api/register'
@@ -36,6 +36,13 @@ data class RegisterRequest(val uuid: String?, val mod: String?)
  * @param secret: The user's authentication secret they received when POSTing '/api/register'
  */
 data class OfflineRequest(val uuid: String?, val secret: String?)
+
+/**
+ * Response that is received when sending a HTTP GET to "https://sessionserver.mojang.com/session/minecraft/hasJoined?username=username&serverId=hash&ip=ip"
+ *
+ * @see "https://wiki.vg/Protocol_Encryption#Authentication"
+ */
+data class SessionResponse(val id: String?, val name: String?)
 
 fun Routing.api() {
     post("/api/register") {
@@ -46,7 +53,7 @@ fun Routing.api() {
             return@post
         }
 
-        if (request.uuid == null || request.uuid.length != 36) {
+        if (request.uuid?.length != 36) {
             logger.warn("Received invalid UUID for /api/register! (uuid = ${request.uuid})")
             call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid UUID"))
             return@post
@@ -58,10 +65,32 @@ fun Routing.api() {
             return@post
         }
 
+        if(request.serverID == null) {
+            logger.warn("Received null serverID for /api/register")
+            call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid serverID"))
+            return@post
+        }
+
         val uuid = UUID.fromString(request.uuid)
-        if (database.doesUserExist(uuid)) {
-            // User already exists in database, just update the existing user to be online
-            call.respond(mapOf("secret" to database.loginUser(uuid)))
+        val user = database.getUser(uuid)
+        if (user != null) {
+            var mojangResponse: SessionResponse?
+
+            try {
+                mojangResponse = http.get("https://sessionserver.mojang.com/session/minecraft/hasJoined?username=" + user.username + "&serverId=" + request.serverID)
+            } catch (e: Exception) {
+                logger.error("Error when querying mojang for $uuid: ${e.localizedMessage}")
+                call.respond(HttpStatusCode.InternalServerError, mapOf("message" to "Internal Server Error"))
+                return@post
+            }
+
+            if(mojangResponse == null || mojangResponse.id != request.uuid.replace("-", "") || mojangResponse.name != user.username) {
+                logger.warn("mojangResponse didn't match expected! (response = $mojangResponse, expected $user)")
+                call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid serverID"))
+                return@post
+            } else {
+                call.respond(mapOf("secret" to database.loginUser(uuid)))
+            }
         } else {
             // User does not exist in database, we must get the user's username and create a new user
             val ashconResponse: AshconResponse?
@@ -88,6 +117,22 @@ fun Routing.api() {
             if (ashconResponse.uuid == null || ashconResponse.uuid != uuid.toString()) {
                 logger.error("Ashcon uuid was invalid for ${ashconResponse.username}! (Expected $uuid but got ${ashconResponse.uuid})")
                 call.respond(HttpStatusCode.InternalServerError, mapOf("message" to "Internal Server Error"))
+                return@post
+            }
+
+            var mojangResponse: SessionResponse?
+
+            try {
+                mojangResponse = http.get("https://sessionserver.mojang.com/session/minecraft/hasJoined?username=" + ashconResponse.username + "&serverId=" + request.serverID)
+            } catch (e: Exception) {
+                logger.error("Error when querying Mojang for $uuid: ${e.localizedMessage}")
+                call.respond(HttpStatusCode.InternalServerError, mapOf("message" to "Internal Server Error"))
+                return@post
+            }
+
+            if(mojangResponse == null || mojangResponse.id != request.uuid.replace("-", "") || mojangResponse.name != ashconResponse.username) {
+                logger.warn("mojangResponse didn't match expected! (response = $mojangResponse, expected $ashconResponse)")
+                call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid serverID"))
                 return@post
             }
 

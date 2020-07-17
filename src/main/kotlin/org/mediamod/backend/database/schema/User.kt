@@ -5,5 +5,6 @@ data class User(
         var username: String,
         var requestSecret: String,
         var mods: ArrayList<String>,
-        var online: Boolean
+        var online: Boolean,
+        var levelheadTrack: LevelheadTrack?
 )

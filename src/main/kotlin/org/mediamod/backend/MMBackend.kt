@@ -15,6 +15,7 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import org.mediamod.backend.database.MMDatabase
 import org.mediamod.backend.routing.api.api
+import org.mediamod.backend.routing.api.levelhead
 import org.mediamod.backend.routing.api.party
 import org.mediamod.backend.routing.api.spotify
 import org.mediamod.backend.routing.root
@@ -24,7 +25,7 @@ import java.io.File
 import java.text.DateFormat
 import kotlin.system.exitProcess
 
-data class MMConfig(val spotifyClientID: String, val spotifyClientSecret: String, val spotifyRedirectURI: String)
+data class MMConfig(val spotifyClientID: String, val spotifyClientSecret: String, val spotifyRedirectURI: String, val sk1erLevelheadSecret: String)
 
 fun main() = MMBackend.start()
 
@@ -78,5 +79,6 @@ fun Application.mainModule() {
         api()
         spotify()
         party()
+        levelhead()
     }
 }
