@@ -59,7 +59,7 @@ object MMBackend {
         config = factory.extract()
 
         database = MMDatabase()
-        embeddedServer(Netty, 3000, watchPaths = listOf("MMBackendKt"), module = Application::mainModule).start()
+        embeddedServer(Netty, 3001, watchPaths = listOf("MMBackendKt"), module = Application::mainModule).start()
 
         val stop = System.currentTimeMillis()
         logger.info("Ready! (" + (stop - start) + "ms)")
