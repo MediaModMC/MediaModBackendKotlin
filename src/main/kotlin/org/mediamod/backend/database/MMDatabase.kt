@@ -188,13 +188,13 @@ class MMDatabase {
      *
      * @return: Successful
      */
-    suspend fun joinParty(uuid: String, partyCode: String): String? {
+    suspend fun joinParty(uuid: String, partyCode: String): Party? {
         val party = partiesCollection.findOneById(partyCode) ?: return null
 
         party.participants.add(uuid)
         partiesCollection.updateOneById(partyCode, party)
 
-        return party.host.username
+        return party
     }
 
     suspend fun getParty(code: String): Party? = partiesCollection.findOneById(code)

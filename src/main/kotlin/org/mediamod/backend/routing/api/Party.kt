@@ -304,16 +304,16 @@ fun Routing.party() {
         }
 
         if (user.requestSecret == request.secret) {
-            val host = database.joinParty(user._id, request.partyCode)
+            val party = database.joinParty(user._id, request.partyCode)
 
-            if (host != null) {
-                call.respond(HttpStatusCode.OK, mapOf("success" to true, "host" to host))
+            if (party != null) {
+                call.respond(HttpStatusCode.OK, mapOf("success" to true, "host" to party.host))
             } else {
                 logger.warn("Failed to remove $user from party!")
                 call.respond(HttpStatusCode.BadRequest, mapOf("success" to false, "host" to ""))
             }
         } else {
-            logger.warn("Received invalid secret for /api/spotify/token (got ${request.secret}, expected ${user.requestSecret}})")
+            logger.warn("Received invalid secret for /api/party/join (got ${request.secret}, expected ${user.requestSecret}})")
             call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid Secret"))
             return@post
         }
