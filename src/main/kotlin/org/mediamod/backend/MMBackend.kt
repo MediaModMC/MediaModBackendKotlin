@@ -44,13 +44,14 @@ val http = HttpClient(Apache) {
 val logger: Logger = LoggerFactory.getLogger("mediamod.Backend")
 
 lateinit var database: MMDatabase
+
 object MMBackend {
     fun start() {
         logger.info("Starting...")
         val start = System.currentTimeMillis()
 
         val file = File("config.json")
-        if(!file.exists()) {
+        if (!file.exists()) {
             logger.error("Configuration file doesn't exist!")
             exitProcess(-1)
         }

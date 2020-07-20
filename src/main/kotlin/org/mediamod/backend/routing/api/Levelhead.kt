@@ -8,7 +8,7 @@ import io.ktor.response.respond
 import io.ktor.routing.Routing
 import io.ktor.routing.get
 import io.ktor.routing.post
-import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import org.mediamod.backend.config
 import org.mediamod.backend.database
 import org.mediamod.backend.database.schema.LevelheadTrack
@@ -38,13 +38,13 @@ fun Routing.levelhead() {
         }
 
         val user = database.getUser(UUID.fromString(uuid))
-        if(user == null) {
+        if (user == null) {
             logger.warn("User returned null for /api/levelhead/songInformation (uuid = ${uuid})")
             call.respond(HttpStatusCode.BadRequest, mapOf("message" to "User does not exist"))
             return@get
         }
 
-        if(user.levelheadTrack != null) {
+        if (user.levelheadTrack != null) {
             call.respond(HttpStatusCode.OK, mapOf("track" to user.levelheadTrack))
         } else {
             call.respond(HttpStatusCode.BadRequest, mapOf("message" to "User is not playing a track"))
@@ -73,14 +73,14 @@ fun Routing.levelhead() {
         }
 
         val user = database.getUser(UUID.fromString(request.uuid))
-        if(user == null) {
+        if (user == null) {
             logger.warn("User returned null for /api/levelhead/update (uuid = ${request.uuid})")
             call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid UUID"))
             return@post
         }
 
-        if(user.requestSecret == request.secret) {
-            async {
+        if (user.requestSecret == request.secret) {
+            launch {
                 user.levelheadTrack = Gson().fromJson(request.track, LevelheadTrack::class.java)
                 database.updateUser(user)
             }

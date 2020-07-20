@@ -254,7 +254,7 @@ fun Routing.party() {
         if (user.requestSecret == request.secret) {
             val party = database.getParty(request.partyCode)
 
-            if(party?.requestSecret == request.partySecret) {
+            if (party?.requestSecret == request.partySecret) {
                 party.currentTrack = Gson().fromJson(request.currentTrack, Track::class.java)
                 database.updateParty(party)
             } else {

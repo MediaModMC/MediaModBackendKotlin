@@ -3,23 +3,21 @@ package org.mediamod.backend.routing.api
 import io.ktor.application.call
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.apache.Apache
-import io.ktor.client.request.forms.FormDataContent
-import io.ktor.client.request.post
 import io.ktor.client.features.auth.Auth
 import io.ktor.client.features.auth.providers.basic
 import io.ktor.client.features.json.GsonSerializer
 import io.ktor.client.features.json.JsonFeature
+import io.ktor.client.request.forms.FormDataContent
+import io.ktor.client.request.post
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.Parameters
 import io.ktor.request.receiveOrNull
 import io.ktor.response.respond
 import io.ktor.routing.Routing
-import io.ktor.routing.get
 import io.ktor.routing.post
 import org.mediamod.backend.config
 import org.mediamod.backend.database
 import org.mediamod.backend.logger
-import java.lang.Exception
 import java.util.*
 
 /**
@@ -80,13 +78,13 @@ fun Routing.spotify() {
     post("/api/spotify/token") {
         val request = call.receiveOrNull<SpotifyTokenRequest>()
 
-        if(request == null) {
+        if (request == null) {
             logger.warn("Received null request for /api/spotify/token")
             call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Bad Request"))
             return@post
         }
 
-        if(request.code == null) {
+        if (request.code == null) {
             logger.warn("Received null code for /api/spotify/token")
             call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid UUID"))
             return@post
@@ -105,13 +103,13 @@ fun Routing.spotify() {
         }
 
         val user = database.getUser(UUID.fromString(request.uuid))
-        if(user == null) {
+        if (user == null) {
             logger.warn("User returned null for /api/spotify/token (uuid = ${request.uuid})")
             call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid UUID"))
             return@post
         }
 
-        if(user.requestSecret == request.secret) {
+        if (user.requestSecret == request.secret) {
             try {
                 val response: SpotifyRequestResponse = spotifyHttp.post("https://accounts.spotify.com/api/token") {
                     body = FormDataContent(Parameters.build {
@@ -121,7 +119,7 @@ fun Routing.spotify() {
                     })
                 }
 
-                if(response.access_token == null) {
+                if (response.access_token == null) {
                     call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid Secret"))
                     return@post
                 }
@@ -140,13 +138,13 @@ fun Routing.spotify() {
     post("/api/spotify/refresh") {
         val request = call.receiveOrNull<SpotifyRefreshRequest>()
 
-        if(request == null) {
+        if (request == null) {
             logger.warn("Received null request for /api/spotify/refresh")
             call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Bad Request"))
             return@post
         }
 
-        if(request.refresh_token == null) {
+        if (request.refresh_token == null) {
             logger.warn("Received null refresh token for /api/spotify/refresh")
             call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid UUID"))
             return@post
@@ -165,13 +163,13 @@ fun Routing.spotify() {
         }
 
         val user = database.getUser(UUID.fromString(request.uuid))
-        if(user == null) {
+        if (user == null) {
             logger.warn("User returned null for /api/spotify/refresh (uuid = ${request.uuid})")
             call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid UUID"))
             return@post
         }
 
-        if(user.requestSecret == request.secret) {
+        if (user.requestSecret == request.secret) {
             try {
                 val response: SpotifyRequestResponse = spotifyHttp.post("https://accounts.spotify.com/api/token") {
                     body = FormDataContent(Parameters.build {
@@ -180,7 +178,7 @@ fun Routing.spotify() {
                     })
                 }
 
-                if(response.access_token == null) {
+                if (response.access_token == null) {
                     call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid Secret"))
                     return@post
                 }
@@ -199,7 +197,7 @@ fun Routing.spotify() {
     post("/api/spotify/clientid") {
         val request = call.receiveOrNull<SpotifyClientIDRequest>()
 
-        if(request == null) {
+        if (request == null) {
             logger.warn("Received null request for /api/spotify/token")
             call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Bad Request"))
             return@post
@@ -218,13 +216,13 @@ fun Routing.spotify() {
         }
 
         val user = database.getUser(UUID.fromString(request.uuid))
-        if(user == null) {
+        if (user == null) {
             logger.warn("User returned null for /api/spotify/token (uuid = ${request.uuid})")
             call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid UUID"))
             return@post
         }
 
-        if(user.requestSecret == request.secret) {
+        if (user.requestSecret == request.secret) {
             call.respond(mapOf("clientID" to config.spotifyClientID))
         } else {
             call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid Secret"))

@@ -3,7 +3,10 @@ package org.mediamod.backend.database
 import com.mongodb.MongoClientSettings
 import org.bson.UuidRepresentation
 import org.litote.kmongo.contains
-import org.litote.kmongo.coroutine.*
+import org.litote.kmongo.coroutine.CoroutineClient
+import org.litote.kmongo.coroutine.CoroutineCollection
+import org.litote.kmongo.coroutine.CoroutineDatabase
+import org.litote.kmongo.coroutine.coroutine
 import org.litote.kmongo.eq
 import org.litote.kmongo.reactivestreams.KMongo
 import org.mediamod.backend.database.schema.Party
@@ -28,10 +31,10 @@ class MMDatabase {
 
         // Initialize the client
         client = KMongo.createClient(
-            MongoClientSettings
-                .builder()
-                .uuidRepresentation(UuidRepresentation.STANDARD)
-                .build()
+                MongoClientSettings
+                        .builder()
+                        .uuidRepresentation(UuidRepresentation.STANDARD)
+                        .build()
         ).coroutine
 
         // Set the database and collections
@@ -85,8 +88,8 @@ class MMDatabase {
     suspend fun offlineUser(user: User) {
         val party = partiesCollection.findOne(Party::participants contains user._id)
 
-        if(party != null) {
-            if(party.host._id == user._id) {
+        if (party != null) {
+            if (party.host._id == user._id) {
                 partiesCollection.findOneAndDelete(Party::host eq user)
             } else {
                 party.participants.remove(user._id)
@@ -173,9 +176,9 @@ class MMDatabase {
         val party = partiesCollection.findOneById(partyCode) ?: return false
         val user = getUser(UUID.fromString(uuid)) ?: return false
 
-        if(party.host._id == user._id && party.requestSecret == partySecret) {
+        if (party.host._id == user._id && party.requestSecret == partySecret) {
             partiesCollection.deleteOneById(partyCode)
-        } else if(party.participants.contains(uuid)) {
+        } else if (party.participants.contains(uuid)) {
             party.participants.remove(uuid)
             updateParty(party)
         }
@@ -205,7 +208,7 @@ class MMDatabase {
     private suspend fun generatePartyCode(): String {
         val alphabet: List<Char> = ('a'..'z') + ('A'..'Z') + ('0'..'9')
         val code = List(6) { alphabet.random() }.joinToString("")
-        return if(partiesCollection.findOneById(code) == null) {
+        return if (partiesCollection.findOneById(code) == null) {
             code
         } else {
             generatePartyCode()

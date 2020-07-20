@@ -7,7 +7,7 @@ import io.ktor.request.receiveOrNull
 import io.ktor.response.respond
 import io.ktor.routing.Routing
 import io.ktor.routing.post
-import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import org.mediamod.backend.database
 import org.mediamod.backend.http
 import org.mediamod.backend.logger
@@ -65,7 +65,7 @@ fun Routing.api() {
             return@post
         }
 
-        if(request.serverID == null) {
+        if (request.serverID == null) {
             logger.warn("Received null serverID for /api/register")
             call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid serverID"))
             return@post
@@ -74,7 +74,7 @@ fun Routing.api() {
         val uuid = UUID.fromString(request.uuid)
         val user = database.getUser(uuid)
         if (user != null) {
-            var mojangResponse: SessionResponse?
+            val mojangResponse: SessionResponse?
 
             try {
                 mojangResponse = http.get("https://sessionserver.mojang.com/session/minecraft/hasJoined?username=" + user.username + "&serverId=" + request.serverID)
@@ -84,7 +84,7 @@ fun Routing.api() {
                 return@post
             }
 
-            if(mojangResponse == null || mojangResponse.id != request.uuid.replace("-", "") || mojangResponse.name != user.username) {
+            if (mojangResponse == null || mojangResponse.id != request.uuid.replace("-", "") || mojangResponse.name != user.username) {
                 logger.warn("mojangResponse didn't match expected! (response = $mojangResponse, expected $user)")
                 call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid serverID"))
                 return@post
@@ -120,7 +120,7 @@ fun Routing.api() {
                 return@post
             }
 
-            var mojangResponse: SessionResponse?
+            val mojangResponse: SessionResponse?
 
             try {
                 mojangResponse = http.get("https://sessionserver.mojang.com/session/minecraft/hasJoined?username=" + ashconResponse.username + "&serverId=" + request.serverID)
@@ -130,7 +130,7 @@ fun Routing.api() {
                 return@post
             }
 
-            if(mojangResponse == null || mojangResponse.id != request.uuid.replace("-", "") || mojangResponse.name != ashconResponse.username) {
+            if (mojangResponse == null || mojangResponse.id != request.uuid.replace("-", "") || mojangResponse.name != ashconResponse.username) {
                 logger.warn("mojangResponse didn't match expected! (response = $mojangResponse, expected $ashconResponse)")
                 call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid serverID"))
                 return@post
@@ -163,14 +163,14 @@ fun Routing.api() {
         }
 
         val user = database.getUser(UUID.fromString(request.uuid))
-        if(user == null) {
+        if (user == null) {
             logger.warn("User returned null for /api/offline (uuid = ${request.uuid})")
             call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid UUID"))
             return@post
         }
 
-        if(user.requestSecret == request.secret) {
-            async {
+        if (user.requestSecret == request.secret) {
+            launch {
                 logger.info("Marking ${user.username} as offline...")
                 database.offlineUser(user)
             }
