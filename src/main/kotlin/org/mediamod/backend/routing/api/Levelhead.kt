@@ -26,7 +26,7 @@ fun Routing.levelhead() {
         val secret = call.request.queryParameters["secret"]
 
         if (uuid == null || uuid.length != 36) {
-            logger.warn("Received invalid UUID for /api/levelhead/songInformation (uuid = ${uuid})")
+            // logger.warn("Received invalid UUID for /api/levelhead/songInformation (uuid = ${uuid})")
             call.respond(HttpStatusCode.BadRequest, mapOf("message" to "Invalid UUID"))
             return@get
         }
@@ -39,7 +39,7 @@ fun Routing.levelhead() {
 
         val user = database.getUser(UUID.fromString(uuid))
         if (user == null) {
-            logger.warn("User returned null for /api/levelhead/songInformation (uuid = ${uuid})")
+            // logger.warn("User returned null for /api/levelhead/songInformation (uuid = ${uuid})")
             call.respond(HttpStatusCode.BadRequest, mapOf("message" to "User does not exist"))
             return@get
         }
